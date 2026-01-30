@@ -1,0 +1,7 @@
+{
+  "name": "Jan17-GEMI-AI-Voltx-Internal tools",
+  "description": "A Gemini based AI-powered expense and invoice scanner that extracts data from receipts and automatically stores them in INR. Features advanced dashboards and spending analytics.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
