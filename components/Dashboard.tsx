@@ -124,7 +124,7 @@ const Dashboard: React.FC<Props> = ({ expenses, sales, onRestore }) => {
             <div className={`${item.bg} ${item.color} w-16 h-16 rounded-2xl flex items-center justify-center mb-8 shadow-2xl group-hover:rotate-12 transition-transform`}>
               <item.icon size={32} />
             </div>
-            <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] mb-2">{item.label}</h3>
+            <h3 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em] mb-2">{item.label}</h3>
             <p className="text-4xl font-black text-white tracking-tighter italic">₹{item.val.toLocaleString('en-IN')}</p>
           </div>
         ))}
@@ -188,9 +188,9 @@ const Dashboard: React.FC<Props> = ({ expenses, sales, onRestore }) => {
                   <p className="text-xs font-black text-white uppercase tracking-tight group-hover:text-blue-400 transition-colors">
                     {(act as any).vendorName || (act as any).customerName}
                   </p>
-                  <p className="text-[9px] font-bold text-slate-500 uppercase mt-1">₹{act.totalAmount.toLocaleString()}</p>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase mt-1">₹{act.totalAmount.toLocaleString()}</p>
                 </div>
-                <ArrowRight size={14} className="text-slate-800 opacity-0 group-hover:opacity-100 transition-all translate-x-[-10px] group-hover:translate-x-0" />
+                <ArrowRight size={14} className="text-slate-500 opacity-0 group-hover:opacity-100 transition-all translate-x-[-10px] group-hover:translate-x-0" />
               </div>
             ))}
           </div>
