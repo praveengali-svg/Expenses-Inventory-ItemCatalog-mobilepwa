@@ -49,7 +49,7 @@ const ExpenseListRow: React.FC<Props> = ({ expense, onDelete, onView, onUpdate }
   const handleUpdateItem = (index: number, field: keyof LineItem, value: string | number) => {
     const newList = [...(editForm.lineItems || [])];
     newList[index] = { ...newList[index], [field]: value };
-    
+
     if (field === 'quantity' || field === 'rate') {
       const q = field === 'quantity' ? Number(value) : (newList[index].quantity || 0);
       const r = field === 'rate' ? Number(value) : (newList[index].rate || 0);
@@ -79,7 +79,7 @@ const ExpenseListRow: React.FC<Props> = ({ expense, onDelete, onView, onUpdate }
 
   return (
     <>
-      <tr 
+      <tr
         className={`group transition-colors cursor-pointer border-l-4 ${isExpanded ? 'bg-blue-50/30 border-blue-600' : 'hover:bg-slate-50/80 border-transparent'}`}
         onClick={() => setIsExpanded(!isExpanded)}
       >
@@ -89,8 +89,8 @@ const ExpenseListRow: React.FC<Props> = ({ expense, onDelete, onView, onUpdate }
           </div>
         </td>
         <td className="px-6 py-4">
-          <p className="text-sm font-black text-slate-900">{expense.vendorName}</p>
-          <div className="flex items-center gap-1.5 mt-1 text-slate-400 font-bold text-[10px]">
+          <p className="text-sm font-black text-white group-hover:text-slate-900 transition-colors uppercase tracking-tight">{expense.vendorName}</p>
+          <div className="flex items-center gap-1.5 mt-1 text-slate-400 font-bold text-[10px] group-hover:text-slate-500">
             <Calendar size={10} />
             {new Date(expense.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
           </div>
@@ -104,10 +104,10 @@ const ExpenseListRow: React.FC<Props> = ({ expense, onDelete, onView, onUpdate }
           </div>
         </td>
         <td className="px-6 py-4 text-center">
-           <div className="flex flex-col items-center gap-1">
-              <span className="text-[10px] font-black text-slate-700 uppercase tracking-tight">{expense.createdBy}</span>
-              <User size={10} className="text-slate-300" />
-           </div>
+          <div className="flex flex-col items-center gap-1">
+            <span className="text-[10px] font-black text-slate-700 uppercase tracking-tight">{expense.createdBy}</span>
+            <User size={10} className="text-slate-300" />
+          </div>
         </td>
         <td className="px-6 py-4 text-right">
           <p className="text-sm font-black text-slate-900 tracking-tight">{formatCurrency(expense.totalAmount)}</p>
@@ -115,13 +115,13 @@ const ExpenseListRow: React.FC<Props> = ({ expense, onDelete, onView, onUpdate }
         </td>
         <td className="px-6 py-4 text-right">
           <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button 
+            <button
               onClick={(e) => { e.stopPropagation(); onView(expense); }}
               className="p-2 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-blue-600 shadow-sm"
             >
               <Eye size={16} />
             </button>
-            <button 
+            <button
               onClick={(e) => { e.stopPropagation(); onDelete(expense.id); }}
               className="p-2 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-red-500 shadow-sm"
             >
@@ -158,7 +158,7 @@ const ExpenseListRow: React.FC<Props> = ({ expense, onDelete, onView, onUpdate }
                       </button>
                     </>
                   ) : (
-                    <button onClick={(e) => { e.stopPropagation(); setEditForm({...expense}); setIsEditing(true); }} className="flex items-center gap-1.5 text-[9px] font-black text-slate-700 bg-white border border-slate-200 px-3 py-1.5 rounded-xl hover:bg-slate-50 transition-colors uppercase tracking-widest">
+                    <button onClick={(e) => { e.stopPropagation(); setEditForm({ ...expense }); setIsEditing(true); }} className="flex items-center gap-1.5 text-[9px] font-black text-slate-700 bg-white border border-slate-200 px-3 py-1.5 rounded-xl hover:bg-slate-50 transition-colors uppercase tracking-widest">
                       <Edit3 size={14} /> Edit Items
                     </button>
                   )}
@@ -180,9 +180,9 @@ const ExpenseListRow: React.FC<Props> = ({ expense, onDelete, onView, onUpdate }
                       <td className="px-6 py-4">
                         {isEditing ? (
                           <div className="space-y-2">
-                            <input 
-                              type="text" 
-                              value={item.description} 
+                            <input
+                              type="text"
+                              value={item.description}
                               onChange={(e) => handleUpdateItem(idx, 'description', e.target.value)}
                               className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500/20"
                             />
@@ -203,9 +203,9 @@ const ExpenseListRow: React.FC<Props> = ({ expense, onDelete, onView, onUpdate }
                       </td>
                       <td className="px-6 py-4 text-center">
                         {isEditing ? (
-                          <input 
-                            type="text" 
-                            value={item.hsnCode || ''} 
+                          <input
+                            type="text"
+                            value={item.hsnCode || ''}
                             onChange={(e) => handleUpdateItem(idx, 'hsnCode', e.target.value)}
                             className="w-24 bg-white border border-slate-200 rounded-lg px-2 py-1 text-[10px] font-black text-center outline-none uppercase"
                           />
@@ -216,15 +216,15 @@ const ExpenseListRow: React.FC<Props> = ({ expense, onDelete, onView, onUpdate }
                       <td className="px-6 py-4 text-center">
                         {isEditing ? (
                           <div className="flex gap-2 justify-center">
-                             <input 
-                              type="number" 
-                              value={item.quantity} 
+                            <input
+                              type="number"
+                              value={item.quantity}
                               onChange={(e) => handleUpdateItem(idx, 'quantity', Number(e.target.value))}
                               className="w-12 bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-center outline-none"
                             />
-                             <input 
-                              type="number" 
-                              value={item.rate} 
+                            <input
+                              type="number"
+                              value={item.rate}
                               onChange={(e) => handleUpdateItem(idx, 'rate', Number(e.target.value))}
                               className="w-16 bg-white border border-slate-200 rounded-lg px-2 py-1 text-[10px] font-bold text-center outline-none"
                             />
@@ -238,9 +238,9 @@ const ExpenseListRow: React.FC<Props> = ({ expense, onDelete, onView, onUpdate }
                       </td>
                       <td className="px-6 py-4 text-right">
                         {isEditing ? (
-                          <input 
-                            type="number" 
-                            value={item.amount} 
+                          <input
+                            type="number"
+                            value={item.amount}
                             onChange={(e) => handleUpdateItem(idx, 'amount', Number(e.target.value))}
                             className="w-24 bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-black text-right outline-none"
                           />
@@ -262,7 +262,7 @@ const ExpenseListRow: React.FC<Props> = ({ expense, onDelete, onView, onUpdate }
               <div className="p-4 bg-slate-50/30 flex justify-between items-center border-t border-slate-100">
                 <div className="flex gap-4">
                   {hasMoreItems && (
-                    <button 
+                    <button
                       onClick={(e) => { e.stopPropagation(); setShowAllItems(!showAllItems); }}
                       className="text-[10px] font-black text-blue-600 uppercase tracking-widest hover:text-blue-800 transition-colors flex items-center gap-2"
                     >

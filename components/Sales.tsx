@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { 
-  ShoppingBag, Plus, Search, FileText, Printer, Trash2, 
-  ArrowRightLeft, FileCheck, ClipboardList, PackageCheck, Eye, 
+import {
+  ShoppingBag, Plus, Search, FileText, Printer, Trash2,
+  ArrowRightLeft, FileCheck, ClipboardList, PackageCheck, Eye,
   ChevronDown, X, Edit3, User, Calendar, Tag, IndianRupee, PrinterIcon, DownloadCloud, ArrowRight, Layers
 } from 'lucide-react';
 import { SalesDocument, SalesDocType, InventoryItem, User as AppUser, LineItem, CatalogItem } from '../types';
@@ -34,8 +34,8 @@ const Sales: React.FC<Props> = ({ sales, inventory, catalog, currentUser, onUpda
   }, [defaultFilter]);
 
   const filteredSales = sales.filter(s => {
-    const matchesSearch = s.customerName.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          s.docNumber.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = s.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      s.docNumber.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === "All" || s.type === filterType;
     return matchesSearch && matchesType;
   });
@@ -86,7 +86,7 @@ const Sales: React.FC<Props> = ({ sales, inventory, catalog, currentUser, onUpda
   return (
     <div className="space-y-10 animate-in fade-in duration-500">
       {isEditorOpen && (
-        <SalesDocEditor 
+        <SalesDocEditor
           type={creationType}
           doc={selectedDoc}
           inventory={inventory}
@@ -98,7 +98,7 @@ const Sales: React.FC<Props> = ({ sales, inventory, catalog, currentUser, onUpda
       )}
 
       {viewingDoc && (
-        <SalesDocViewer 
+        <SalesDocViewer
           doc={viewingDoc}
           onClose={() => setViewingDoc(null)}
           onEdit={handleEdit}
@@ -106,7 +106,7 @@ const Sales: React.FC<Props> = ({ sales, inventory, catalog, currentUser, onUpda
       )}
 
       {isBulkImportOpen && (
-        <BulkImport 
+        <BulkImport
           currentUser={currentUser}
           onClose={() => setIsBulkImportOpen(false)}
           onSuccess={onUpdate}
@@ -115,17 +115,17 @@ const Sales: React.FC<Props> = ({ sales, inventory, catalog, currentUser, onUpda
 
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div>
-          <h2 className="text-3xl font-black text-slate-900 tracking-tight">Sales & Revenue</h2>
+          <h2 className="text-3xl font-black text-white tracking-tight">Sales & Revenue</h2>
           <p className="text-slate-400 text-sm font-bold mt-1 uppercase tracking-widest">Outward Distribution Management</p>
         </div>
         <div className="flex flex-wrap gap-4">
-          <button 
+          <button
             onClick={() => setIsBulkImportOpen(true)}
             className="bg-white text-slate-900 border border-slate-200 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl hover:bg-slate-50 transition-all flex items-center gap-3"
           >
             <Layers size={18} /> Bulk Import
           </button>
-          <button 
+          <button
             onClick={() => handleCreateNew('sales_invoice')}
             className="bg-orange-600 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl hover:bg-orange-700 transition-all flex items-center gap-3"
           >
@@ -136,30 +136,29 @@ const Sales: React.FC<Props> = ({ sales, inventory, catalog, currentUser, onUpda
 
       <div className="bg-white rounded-[3rem] border border-slate-200 overflow-hidden shadow-sm">
         <div className="p-8 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center gap-6">
-           <div className="relative w-full md:w-96">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-              <input 
-                type="text" 
-                placeholder="Search Customer or Doc #..." 
-                value={searchTerm} 
-                onChange={e => setSearchTerm(e.target.value)}
-                className="w-full bg-slate-50 px-12 py-3.5 rounded-2xl border border-slate-100 font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500/20"
-              />
-           </div>
+          <div className="relative w-full md:w-96">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <input
+              type="text"
+              placeholder="Search Customer or Doc #..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="w-full bg-slate-50 px-12 py-3.5 rounded-2xl border border-slate-100 font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500/20"
+            />
+          </div>
 
-           <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-100 overflow-x-auto max-w-full">
-              {(['All', 'sales_invoice', 'proforma', 'quotation', 'credit_note', 'delivery_challan'] as const).map(type => (
-                <button 
-                  key={type}
-                  onClick={() => setFilterType(type)}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${
-                    filterType === type ? 'bg-white text-orange-600 shadow-sm border border-slate-100' : 'text-slate-400 hover:text-slate-900'
+          <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-100 overflow-x-auto max-w-full">
+            {(['All', 'sales_invoice', 'proforma', 'quotation', 'credit_note', 'delivery_challan'] as const).map(type => (
+              <button
+                key={type}
+                onClick={() => setFilterType(type)}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${filterType === type ? 'bg-white text-orange-600 shadow-sm border border-slate-100' : 'text-slate-400 hover:text-slate-900'
                   }`}
-                >
-                  {type === 'All' ? 'View All' : docLabels[type as SalesDocType]}
-                </button>
-              ))}
-           </div>
+              >
+                {type === 'All' ? 'View All' : docLabels[type as SalesDocType]}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -209,21 +208,21 @@ const Sales: React.FC<Props> = ({ sales, inventory, catalog, currentUser, onUpda
                   </td>
                   <td className="px-8 py-6 text-right">
                     <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button 
+                      <button
                         onClick={(e) => { e.stopPropagation(); handleEdit(doc); }}
                         className="p-2.5 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-orange-600 shadow-sm transition-all"
                         title="Edit Data"
                       >
                         <Edit3 size={16} />
                       </button>
-                      <button 
+                      <button
                         onClick={(e) => { e.stopPropagation(); setViewingDoc(doc); }}
                         className="p-2.5 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-blue-600 shadow-sm transition-all"
                         title="View & Print"
                       >
                         <Eye size={16} />
                       </button>
-                      <button 
+                      <button
                         onClick={(e) => { e.stopPropagation(); handleDelete(doc.id); }}
                         className="p-2.5 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-red-500 shadow-sm transition-all"
                         title="Delete Permanently"
