@@ -1,5 +1,5 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { compressImage } from './utils/image';
 import {
   LayoutDashboard, History, ScanLine, Receipt, RefreshCw, Camera, Upload, Box, ShoppingBag, BookOpen, Building2, Wallet, Plus, FilePlus, Zap, ImageIcon, ChevronLeft, ChevronRight, Menu, FileText, ClipboardList, ArrowRightLeft, PackageCheck, XCircle, ChevronDown, IndianRupee, Cloud, CloudOff, ShieldCheck, CheckCircle2, AlertCircle
 } from 'lucide-react';
@@ -55,41 +55,14 @@ const App: React.FC = () => {
 
   const neuralCloudSync = useCallback(async (forceDirection?: 'push' | 'pull') => {
     if (!user) return;
-    setCloudStatus('syncing');
-    try {
-      if (forceDirection === 'pull') {
-        const cloudData = await googleDriveService.downloadSyncFile();
-        if (cloudData) {
-          await storageService.importFullVault(cloudData);
-          await loadLocalData();
-        }
-      } else {
-        // Standard Sync: Bidirectional check
-        const localMod = await storageService.getLastModified();
-        const cloudData = await googleDriveService.downloadSyncFile();
-
-        if (cloudData && cloudData.timestamp > localMod) {
-          // Cloud is newer (user updated from another device)
-          await storageService.importFullVault(cloudData);
-          await loadLocalData();
-        } else if (localMod > (cloudData?.timestamp || 0)) {
-          // Local is newer (needs upload)
-          const vault = await storageService.exportFullVault();
-          await googleDriveService.uploadSyncFile(vault);
-        }
-      }
-      setCloudStatus('synced');
-    } catch (err) {
-      console.warn("Neural Link interrupted:", err);
-      setCloudStatus('error');
-    }
-  }, [user, loadLocalData]);
+    setCloudStatus('synced'); // In Firestore, we are always "synced" if connection is live
+  }, [user]);
 
   useEffect(() => {
     if (user) {
-      loadLocalData().then(() => neuralCloudSync());
+      loadLocalData();
     }
-  }, [user, loadLocalData, neuralCloudSync]);
+  }, [user, loadLocalData]);
 
   const processFile = async (file: File | { base64: string, mimeType: string, name: string }) => {
     setStatus(AppStatus.SCANNING);
@@ -101,13 +74,16 @@ const App: React.FC = () => {
     if (file instanceof File) {
       fileName = file.name;
       mimeType = file.type;
-      fileData = await new Promise((resolve) => {
+      const rawData = await new Promise<string>((resolve) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result as string);
         reader.readAsDataURL(file);
       });
+      // Compress immediately for storage efficiency
+      fileData = await compressImage(rawData, 1200, 0.6);
     } else {
-      fileData = file.base64;
+      // For camera/base64 inputs
+      fileData = await compressImage(file.base64, 1200, 0.6);
       mimeType = file.mimeType;
       fileName = file.name;
     }
@@ -288,7 +264,17 @@ const App: React.FC = () => {
 
         <div className="flex-1 p-6 md:p-12 lg:p-16 overflow-y-auto custom-scrollbar">
           <div className="max-w-[1600px] mx-auto">
-            {activeTab === 'dashboard' && <Dashboard expenses={expenses} sales={sales} />}
+            {activeTab === 'dashboard' && (
+              <Dashboard
+                expenses={expenses}
+                sales={sales}
+                onRestore={async (data) => {
+                  await storageService.importFullVault(data);
+                  await loadLocalData();
+                  // Firestore handles its own sync, no need for manual push
+                }}
+              />
+            )}
             {activeTab === 'purchase_invoice' && renderDocLog(expenses.filter(e => e.type === 'invoice'), "Purchase Invoices", "Supply Flow")}
             {activeTab === 'purchase_order' && renderDocLog(expenses.filter(e => e.type === 'purchase_order'), "Orders", "Formal Procurement", true)}
             {activeTab === 'opex' && renderDocLog(expenses.filter(e => e.type === 'expense'), "Operations", "Overhead Ledger")}

@@ -2,7 +2,7 @@ import { initializeApp } from "firebase/app";
 import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyAGLopB1Rx9nH09LNytJ_DClyo9wuiYIpA",
+    apiKey: "AIzaSyAHDcyORi6A9Vyf2MZ8QiHgO0USSDt7VcA",
     authDomain: "gen-lang-client-0883796692.firebaseapp.com",
     projectId: "gen-lang-client-0883796692",
     storageBucket: "gen-lang-client-0883796692.appspot.com",

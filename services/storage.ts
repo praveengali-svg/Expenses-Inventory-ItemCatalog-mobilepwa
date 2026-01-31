@@ -26,6 +26,8 @@ const STORE_PRODUCTION = 'production';
 const STORE_ASSETS = 'assets';
 const STORE_META = 'metadata';
 
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 export const storageService = {
   // Metadata for Sync tracking (kept for compatibility, though less relevant in Firestore)
   getLastModified: async (): Promise<number> => {
@@ -75,40 +77,40 @@ export const storageService = {
 
   importFullVault: async (data: any): Promise<void> => {
     const stores = [STORE_EXPENSES, STORE_SALES, STORE_CATALOG, STORE_INVENTORY, STORE_USERS, STORE_MOVEMENTS, STORE_PRODUCTION, STORE_ASSETS];
-    const batch = writeBatch(db);
-    let opCount = 0;
-    const MAX_BATCH_SIZE = 500;
 
-    const commitBatchStyles = async () => {
-      if (opCount > 0) {
-        await batch.commit();
-        opCount = 0;
+    // Helper to purge undefined
+    const sanitize = (obj: any): any => {
+      if (Array.isArray(obj)) return obj.map(sanitize);
+      if (obj !== null && typeof obj === 'object') {
+        const out: any = {};
+        Object.entries(obj).forEach(([k, v]) => {
+          if (v !== undefined) out[k] = sanitize(v);
+        });
+        return out;
       }
+      return obj;
     };
-
-    // CAUTION: This does not clear existing data efficiently. 
-    // Implementing "Overwrite" in Firestore requires deleting all docs first which is slow.
-    // For now, we will just upsert.
 
     for (const storeName of stores) {
       if (!data[storeName]) continue;
       const items = data[storeName];
       if (Array.isArray(items)) {
-        for (const item of items) {
+        console.log(`Neural Vault: Restoring ${items.length} items to ${storeName}...`);
+        for (const rawItem of items) {
+          const item = sanitize(rawItem);
           const id = item.id || item.sku || item.phone || item.key;
           if (id) {
-            const docRef = doc(db, storeName, String(id));
-            batch.set(docRef, item);
-            opCount++;
-            if (opCount >= MAX_BATCH_SIZE) { // simple batching
-              // In a real loop we need to reset the batch object. 
-              // Since implementation is changing, we'll just doing standard awaits for simplicity if batching logic gets complex
+            try {
+              await setDoc(doc(db, storeName, String(id)), item);
+              // Throttle to avoid "Write stream exhausted"
+              await sleep(100);
+            } catch (err) {
+              console.error(`Restore failure for doc ${id} in ${storeName}:`, err);
             }
           }
         }
       }
     }
-    await batch.commit(); // Commit remaining
 
     if (data.timestamp) {
       await storageService.updateLastModified(data.timestamp);
