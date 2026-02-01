@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { compressImage } from './utils/image';
 import {
-  LayoutDashboard, History, ScanLine, Receipt, RefreshCw, Camera, Upload, Box, ShoppingBag, BookOpen, Building2, Wallet, Plus, FilePlus, Zap, ImageIcon, ChevronLeft, ChevronRight, Menu, FileText, ClipboardList, ArrowRightLeft, PackageCheck, XCircle, ChevronDown, IndianRupee, Cloud, CloudOff, ShieldCheck, CheckCircle2, AlertCircle
+  LayoutDashboard, History, ScanLine, Receipt, RefreshCw, Camera, Upload, Box, ShoppingBag, BookOpen, Building2, Wallet, Plus, FilePlus, Zap, ImageIcon, ChevronLeft, ChevronRight, Menu, FileText, ClipboardList, ArrowRightLeft, PackageCheck, XCircle, ChevronDown, IndianRupee, Cloud, CloudOff, ShieldCheck, CheckCircle2, AlertCircle, FileCheck, PieChart
 } from 'lucide-react';
 import { AppStatus, ExpenseData, User, InventoryItem, SalesDocument, CatalogItem, SalesDocType, DocumentType } from './types';
 import { storageService } from './services/storage';
@@ -19,8 +19,9 @@ import Login from './components/Login';
 import PurchaseOrderEditor from './components/PurchaseOrderEditor';
 import Manufacturing from './components/Manufacturing';
 import MediaLibrary from './components/MediaLibrary';
+import Users from './components/Users';
 
-type TabID = 'dashboard' | 'purchase_invoice' | 'purchase_order' | 'opex' | 'sales_invoice' | 'proforma' | 'quotation' | 'credit_note' | 'delivery_challan' | 'inventory' | 'catalog' | 'reports' | 'manufacturing' | 'media';
+type TabID = 'dashboard' | 'purchase_invoice' | 'purchase_order' | 'opex' | 'sales_invoice' | 'proforma' | 'quotation' | 'credit_note' | 'delivery_challan' | 'inventory' | 'catalog' | 'reports' | 'manufacturing' | 'media' | 'users';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -61,8 +62,12 @@ const App: React.FC = () => {
   useEffect(() => {
     if (user) {
       loadLocalData();
+      // Enforce role-based access for staff
+      if (user.role === 'staff' && (activeTab === 'dashboard' || activeTab === 'reports' || activeTab === 'opex' || activeTab === 'purchase_order' || activeTab === 'inventory' || activeTab === 'manufacturing' || activeTab === 'media' || activeTab === 'users' || activeTab === 'proforma' || activeTab === 'quotation' || activeTab === 'credit_note' || activeTab === 'delivery_challan')) {
+        setActiveTab('purchase_invoice');
+      }
     }
-  }, [user, loadLocalData]);
+  }, [user, activeTab, loadLocalData]);
 
   const processFile = async (file: File | { base64: string, mimeType: string, name: string }) => {
     setStatus(AppStatus.SCANNING);
@@ -212,22 +217,42 @@ const App: React.FC = () => {
         </div>
 
         <nav className="flex-1 space-y-2 overflow-y-auto no-scrollbar">
-          <NavItem id="dashboard" label="Neural Hub" icon={LayoutDashboard} active={activeTab === 'dashboard'} collapsed={isSidebarCollapsed} onClick={() => { setActiveTab('dashboard'); setIsMobileMenuOpen(false); }} />
+          {user.role === 'admin' && <NavItem id="dashboard" label="Neural Hub" icon={LayoutDashboard} active={activeTab === 'dashboard'} collapsed={isSidebarCollapsed} onClick={() => { setActiveTab('dashboard'); setIsMobileMenuOpen(false); }} />}
           <div className="pt-6">
             <p className={`text-[10px] font-black text-slate-600 uppercase tracking-[0.5em] mb-4 px-4 ${isSidebarCollapsed ? 'hidden' : ''}`}>Purchases</p>
             <NavItem id="purchase_invoice" label="Invoices" icon={Receipt} active={activeTab === 'purchase_invoice'} collapsed={isSidebarCollapsed} onClick={() => { setActiveTab('purchase_invoice'); setIsMobileMenuOpen(false); }} />
-            <NavItem id="opex" label="Expenses" icon={Wallet} active={activeTab === 'opex'} collapsed={isSidebarCollapsed} onClick={() => { setActiveTab('opex'); setIsMobileMenuOpen(false); }} />
-            <NavItem id="purchase_order" label="Orders" icon={FileText} active={activeTab === 'purchase_order'} collapsed={isSidebarCollapsed} onClick={() => { setActiveTab('purchase_order'); setIsMobileMenuOpen(false); }} />
+            {user.role === 'admin' && <NavItem id="opex" label="Expenses" icon={Wallet} active={activeTab === 'opex'} collapsed={isSidebarCollapsed} onClick={() => { setActiveTab('opex'); setIsMobileMenuOpen(false); }} />}
+            {user.role === 'admin' && <NavItem id="purchase_order" label="Orders" icon={FileText} active={activeTab === 'purchase_order'} collapsed={isSidebarCollapsed} onClick={() => { setActiveTab('purchase_order'); setIsMobileMenuOpen(false); }} />}
           </div>
           <div className="pt-6">
             <p className={`text-[10px] font-black text-slate-600 uppercase tracking-[0.5em] mb-4 px-4 ${isSidebarCollapsed ? 'hidden' : ''}`}>Revenue</p>
             <NavItem id="sales_invoice" label="Billing" icon={IndianRupee} active={activeTab === 'sales_invoice'} collapsed={isSidebarCollapsed} onClick={() => { setActiveTab('sales_invoice'); setIsMobileMenuOpen(false); }} />
+            {user.role === 'admin' && (
+              <>
+                <NavItem id="proforma" label="Proforma" icon={FileCheck} active={activeTab === 'proforma'} collapsed={isSidebarCollapsed} onClick={() => { setActiveTab('proforma'); setIsMobileMenuOpen(false); }} />
+                <NavItem id="quotation" label="Quotation" icon={ClipboardList} active={activeTab === 'quotation'} collapsed={isSidebarCollapsed} onClick={() => { setActiveTab('quotation'); setIsMobileMenuOpen(false); }} />
+                <NavItem id="delivery_challan" label="Challans" icon={PackageCheck} active={activeTab === 'delivery_challan'} collapsed={isSidebarCollapsed} onClick={() => { setActiveTab('delivery_challan'); setIsMobileMenuOpen(false); }} />
+                <NavItem id="credit_note" label="Returns" icon={ArrowRightLeft} active={activeTab === 'credit_note'} collapsed={isSidebarCollapsed} onClick={() => { setActiveTab('credit_note'); setIsMobileMenuOpen(false); }} />
+              </>
+            )}
           </div>
           <div className="pt-6">
             <p className={`text-[10px] font-black text-slate-600 uppercase tracking-[0.5em] mb-4 px-4 ${isSidebarCollapsed ? 'hidden' : ''}`}>Logistics</p>
-            <NavItem id="inventory" label="Inventory" icon={Box} active={activeTab === 'inventory'} collapsed={isSidebarCollapsed} onClick={() => { setActiveTab('inventory'); setIsMobileMenuOpen(false); }} />
+            {user.role === 'admin' && <NavItem id="inventory" label="Inventory" icon={Box} active={activeTab === 'inventory'} collapsed={isSidebarCollapsed} onClick={() => { setActiveTab('inventory'); setIsMobileMenuOpen(false); }} />}
             <NavItem id="catalog" label="Master" icon={BookOpen} active={activeTab === 'catalog'} collapsed={isSidebarCollapsed} onClick={() => { setActiveTab('catalog'); setIsMobileMenuOpen(false); }} />
           </div>
+          {user.role === 'admin' && (
+            <div className="pt-6">
+              <p className={`text-[10px] font-black text-slate-600 uppercase tracking-[0.5em] mb-4 px-4 ${isSidebarCollapsed ? 'hidden' : ''}`}>Insights</p>
+              <NavItem id="reports" label="Analytics" icon={PieChart} active={activeTab === 'reports'} collapsed={isSidebarCollapsed} onClick={() => { setActiveTab('reports'); setIsMobileMenuOpen(false); }} />
+            </div>
+          )}
+          {user.role === 'admin' && (
+            <div className="pt-6">
+              <p className={`text-[10px] font-black text-slate-600 uppercase tracking-[0.5em] mb-4 px-4 ${isSidebarCollapsed ? 'hidden' : ''}`}>System</p>
+              <NavItem id="users" label="Access" icon={ShieldCheck} active={activeTab === 'users'} collapsed={isSidebarCollapsed} onClick={() => { setActiveTab('users'); setIsMobileMenuOpen(false); }} />
+            </div>
+          )}
         </nav>
 
         <div className="mt-auto pt-8 border-t border-white/5">
@@ -280,10 +305,11 @@ const App: React.FC = () => {
             {activeTab === 'opex' && renderDocLog(expenses.filter(e => e.type === 'expense'), "Operations", "Overhead Ledger")}
             {isSalesTab && <Sales sales={sales} inventory={inventory} catalog={catalog} currentUser={user} onUpdate={loadLocalData} defaultFilter={activeTab as SalesDocType} />}
             {activeTab === 'inventory' && <Inventory items={inventory} catalog={catalog} onUpdate={loadLocalData} />}
-            {activeTab === 'catalog' && <Catalog items={catalog} inventory={inventory} onUpdate={loadLocalData} />}
-            {activeTab === 'reports' && <Reports sales={sales} />}
+            {activeTab === 'catalog' && <Catalog items={catalog} inventory={inventory} currentUser={user} onUpdate={loadLocalData} />}
+            {activeTab === 'reports' && <Reports sales={sales} expenses={expenses} />}
             {activeTab === 'manufacturing' && <Manufacturing catalog={catalog} inventory={inventory} currentUser={user} onUpdate={loadLocalData} />}
             {activeTab === 'media' && <MediaLibrary expenses={expenses} catalog={catalog} onUpdate={loadLocalData} />}
+            {activeTab === 'users' && user.role === 'admin' && <Users onUpdate={loadLocalData} />}
           </div>
         </div>
       </main>

@@ -517,19 +517,37 @@ const ReceiptViewer: React.FC<Props> = ({ expense, onClose, onUpdate }) => {
 
       {showQuickAdd && (
         <div className="fixed inset-0 z-[200] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-md rounded-[3rem] p-8 shadow-2xl">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">Quick Catalog Add</h3>
-              <button onClick={() => setShowQuickAdd(null)} className="p-2 text-slate-400"><X size={20} /></button>
+          <div className="bg-white w-full max-w-md rounded-[3rem] p-8 shadow-2xl border border-white/20 animate-in zoom-in-95 duration-300">
+            <div className="flex justify-between items-center mb-8">
+              <div className="flex items-center gap-4">
+                <div className="bg-blue-600 p-3 rounded-2xl text-white shadow-lg"><PlusCircle size={24} /></div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 tracking-tight">Add to Master</h3>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Foundational Catalog Update</p>
+                </div>
+              </div>
+              <button onClick={() => setShowQuickAdd(null)} className="p-2 text-slate-400 hover:text-slate-900"><X size={20} /></button>
             </div>
             <form onSubmit={(e) => {
               e.preventDefault();
               const formData = new FormData(e.currentTarget);
               handleQuickAdd(showQuickAdd.idx, showQuickAdd.name, formData.get('sku') as string, formData.get('hsn') as string, (editForm.lineItems?.[showQuickAdd.idx]?.category) || 'Other');
-            }} className="space-y-4">
-              <input name="sku" required placeholder="SKU-XXXX" className="w-full bg-slate-50 border border-slate-100 px-4 py-3 rounded-xl font-black text-slate-900 text-sm outline-none" />
-              <input name="hsn" required placeholder="HSN Code" className="w-full bg-slate-50 border border-slate-100 px-4 py-3 rounded-xl font-black text-slate-900 text-sm outline-none" />
-              <button type="submit" className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg">Create & Link SKU</button>
+            }} className="space-y-6">
+              <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100 mb-2">
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Item Identity</p>
+                <p className="text-sm font-black text-slate-900 uppercase italic">{showQuickAdd.name}</p>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-2">Assign Global SKU</label>
+                <input name="sku" autoFocus required placeholder="e.g. VOLTX-BATT-001" className="w-full bg-slate-50 border border-slate-100 px-5 py-4 rounded-2xl font-black text-slate-900 text-sm outline-none focus:ring-2 focus:ring-blue-500/20 uppercase" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-2">HSN / SAC Code</label>
+                <input name="hsn" required placeholder="8507" className="w-full bg-slate-50 border border-slate-100 px-5 py-4 rounded-2xl font-black text-slate-900 text-sm outline-none focus:ring-2 focus:ring-blue-500/20" />
+              </div>
+              <button type="submit" className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] shadow-xl hover:bg-black transition-all flex items-center justify-center gap-3 active:scale-95">
+                <Save size={18} /> Provision Item
+              </button>
             </form>
           </div>
         </div>

@@ -78,28 +78,28 @@ const Login: React.FC<Props> = ({ onLogin }) => {
 
         <div className="space-y-4 sm:space-y-5">
           <div className="space-y-2">
-            <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest px-2">ACCESS ID</label>
+            <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest px-2">Phone Number</label>
             <div className="relative group">
               <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-600 transition-colors" size={18} />
               <input
                 type="text"
                 value={accessId}
                 onChange={(e) => setAccessId(e.target.value)}
-                placeholder="Enter Access ID"
+                placeholder="91XXXXXXXX"
                 className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 pl-12 pr-4 text-sm font-black text-slate-900 focus:bg-white focus:border-blue-600 outline-none transition-all placeholder:text-slate-300 shadow-sm"
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest px-2">ACCESS KEY</label>
+            <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest px-2">Security PIN</label>
             <div className="relative group">
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-600 transition-colors" size={18} />
               <input
                 type="password"
                 value={accessKey}
                 onChange={(e) => setAccessKey(e.target.value)}
-                placeholder="Enter Access Key"
+                placeholder="****"
                 className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 pl-12 pr-4 text-sm font-black text-slate-900 focus:bg-white focus:border-blue-600 outline-none transition-all placeholder:text-slate-300 shadow-sm"
               />
             </div>

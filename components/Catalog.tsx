@@ -3,16 +3,17 @@ import React, { useState, useRef } from 'react';
 import {
   BookOpen, Plus, Search, Trash2, Edit2, Save, X, Tag, IndianRupee, Hash, ClipboardList, Package, Filter, Camera, Upload, ImageIcon, Link, ArrowRight, ExternalLink, Box, Sparkles, ChevronDown, Ruler
 } from 'lucide-react';
-import { CatalogItem, ExpenseCategory, InventoryItem } from '../types';
+import { CatalogItem, ExpenseCategory, InventoryItem, User as AppUser } from '../types';
 import { storageService } from '../services/storage';
 
 interface Props {
   items: CatalogItem[];
   inventory: InventoryItem[];
+  currentUser: AppUser | null;
   onUpdate: () => void;
 }
 
-const Catalog: React.FC<Props> = ({ items, inventory, onUpdate }) => {
+const Catalog: React.FC<Props> = ({ items, inventory, currentUser, onUpdate }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<CatalogItem | null>(null);
@@ -134,12 +135,14 @@ const Catalog: React.FC<Props> = ({ items, inventory, onUpdate }) => {
           <h2 className="text-3xl font-black text-white tracking-tight">Item Master Catalog</h2>
           <p className="text-slate-400 text-sm font-bold mt-1 uppercase tracking-widest">Central Source of Truth: Inwards & Outwards Identity</p>
         </div>
-        <button
-          onClick={() => setIsFormOpen(true)}
-          className="bg-purple-600 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl hover:bg-purple-700 transition-all flex items-center gap-3"
-        >
-          <Plus size={18} /> Define New Item
-        </button>
+        {currentUser?.role === 'admin' && (
+          <button
+            onClick={() => setIsFormOpen(true)}
+            className="bg-purple-600 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl hover:bg-purple-700 transition-all flex items-center gap-3"
+          >
+            <Plus size={18} /> Define New Item
+          </button>
+        )}
       </div>
 
       {isFormOpen && (
@@ -416,10 +419,16 @@ const Catalog: React.FC<Props> = ({ items, inventory, onUpdate }) => {
                       <p className="font-black text-emerald-600 tracking-tight">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(item.sellingPrice || 0)}</p>
                     </td>
                     <td className="px-8 py-6 text-right">
-                      <div className="flex justify-end gap-2">
-                        <button onClick={() => handleEdit(item)} className="p-2.5 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-blue-600 shadow-sm transition-all"><Edit2 size={16} /></button>
-                        <button onClick={() => handleDelete(item.sku)} className="p-2.5 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-red-500 shadow-sm transition-all"><Trash2 size={16} /></button>
-                      </div>
+                      {currentUser?.role === 'admin' ? (
+                        <div className="flex justify-end gap-2">
+                          <button onClick={() => handleEdit(item)} className="p-2.5 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-blue-600 shadow-sm transition-all"><Edit2 size={16} /></button>
+                          <button onClick={() => handleDelete(item.sku)} className="p-2.5 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-red-500 shadow-sm transition-all"><Trash2 size={16} /></button>
+                        </div>
+                      ) : (
+                        <div className="flex justify-end">
+                          <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest">Read Only</span>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 );

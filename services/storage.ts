@@ -195,9 +195,6 @@ export const storageService = {
           transaction.update(invRefs[i], { stockLevel: newLevel, lastUpdated: Date.now() });
         } else {
           // Should we block if ingredient missing? Previous code updated it if it existed.
-          // If it doesn't exist, we can't consume it? Or allow negative?
-          // Previous code: if (invItem) { update }. Implicitly ignore if missing?
-          // Better to create partial item or ignore.
         }
       }
 
@@ -393,10 +390,6 @@ export const storageService = {
               };
               transaction.set(invRef, invItem);
             }
-            // Note: modifying expense line item 'isStocked' in memory is fine but we need to ensure the saved expense object has it?
-            // The argument 'expense' is modified in place in the original code? 
-            // Javascript objects are passed by reference, but we are supposed to save 'expense' to DB.
-            // We should update the expense object we are saving.
             item.isStocked = true;
           }
         }
@@ -422,5 +415,20 @@ export const storageService = {
       if (user.pin === pin) return user;
     }
     return null;
+  },
+
+  getUsers: async (): Promise<User[]> => {
+    const snap = await getDocs(collection(db, STORE_USERS));
+    return snap.docs.map(d => d.data() as User);
+  },
+
+  saveUser: async (user: User): Promise<void> => {
+    await setDoc(doc(db, STORE_USERS, user.phone), user);
+    await storageService.updateLastModified(Date.now());
+  },
+
+  deleteUser: async (phone: string): Promise<void> => {
+    await deleteDoc(doc(db, STORE_USERS, phone));
+    await storageService.updateLastModified(Date.now());
   }
 };
