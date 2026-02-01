@@ -1,5 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
+import { getFunctions } from "firebase/functions";
 
 const firebaseConfig = {
     apiKey: "AIzaSyAHDcyORi6A9Vyf2MZ8QiHgO0USSDt7VcA",
@@ -12,6 +13,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const functions = getFunctions(app);
 
 // Enable offline persistence
 // enableIndexedDbPersistence(db).catch((err) => {
@@ -24,4 +26,4 @@ const db = getFirestore(app);
 //   }
 // });
 
-export { db };
+export { db, functions };

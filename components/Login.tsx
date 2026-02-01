@@ -26,9 +26,10 @@ const Login: React.FC<Props> = ({ onLogin }) => {
     setError(false);
 
     try {
-      const authorizedUser = await storageService.validateUser(accessId, accessKey);
-      if (authorizedUser) {
-        onLogin(authorizedUser);
+      const user = await storageService.validateUser(accessId, accessKey);
+      if (user) {
+        console.log("Logged in user:", user);
+        onLogin(user);
       } else {
         setError(true);
         setLoading(false);

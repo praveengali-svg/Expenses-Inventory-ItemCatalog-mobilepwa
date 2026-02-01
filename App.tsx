@@ -258,7 +258,12 @@ const App: React.FC = () => {
         <div className="mt-auto pt-8 border-t border-white/5">
           <div className={`flex items-center gap-4 ${isSidebarCollapsed ? 'justify-center' : ''}`}>
             <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black text-xs">{user.name.charAt(0)}</div>
-            {!isSidebarCollapsed && <div className="flex-1 overflow-hidden"><p className="text-white text-[10px] font-black truncate">{user.name}</p><p className="text-slate-500 text-[8px] font-black uppercase">{user.role}</p></div>}
+            {!isSidebarCollapsed && (
+              <div className="flex-1 min-w-0">
+                <p className="text-white font-black text-sm truncate uppercase tracking-tight leading-none">{user.name}</p>
+                <p className="text-blue-400 text-[8px] font-black uppercase tracking-widest mt-1.5">{user.role}</p>
+              </div>
+            )}
             <button onClick={() => neuralCloudSync()} className="text-slate-600 hover:text-blue-400 transition-colors"><RefreshCw size={14} className={cloudStatus === 'syncing' ? 'animate-spin' : ''} /></button>
           </div>
         </div>
