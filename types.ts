@@ -12,10 +12,10 @@ export interface LineItem {
   isStocked?: boolean; // Track if this specific line item has updated inventory
 }
 
-export type MovementType = 
-  | 'Purchase_GRN' 
-  | 'Sales_Dispatch' 
-  | 'Manual_Adjustment' 
+export type MovementType =
+  | 'Purchase_GRN'
+  | 'Sales_Dispatch'
+  | 'Manual_Adjustment'
   | 'Sale_Return'
   | 'Manufacturing_Consumption'
   | 'Manufacturing_Output';
@@ -103,6 +103,8 @@ export interface InventoryItem {
 export interface ExpenseData {
   id: string;
   vendorName: string;
+  vendorGst?: string;
+  vendorAddress?: string;
   date: string;
   totalAmount: number;
   taxAmount: number;

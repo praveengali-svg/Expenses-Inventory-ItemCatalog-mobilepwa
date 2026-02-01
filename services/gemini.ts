@@ -11,7 +11,6 @@ export interface GstVerificationResult {
 // Helper to call Firebase Functions through Hosting Rewrites
 async function callProxy(action: string, data: any) {
   const user = auth.currentUser;
-  // If no user, wait a bit in case auth is initializing
   if (!user) {
     await new Promise(resolve => setTimeout(resolve, 1000));
   }
@@ -22,9 +21,6 @@ async function callProxy(action: string, data: any) {
   const token = await currentUser.getIdToken();
   const endpoint = `/api/${action}`;
 
-  // onCall protocol requires 'data' wrapper if we were using it, 
-  // but since we are using 'onRequest', we can send it directly.
-  // Our function code handles both.
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: {
@@ -50,7 +46,6 @@ async function callProxy(action: string, data: any) {
   return json.result;
 }
 
-// Map of categories for consistency
 const CATEGORIES: Record<string, ExpenseCategory> = {
   "Parts": "Parts",
   "Product": "Product",
@@ -90,7 +85,21 @@ export const extractSalesData = async (
     const data = await callProxy('extractSales', { fileData, mimeType });
 
     return {
-      ...data,
+      customerName: data.customerName || "Unknown Customer",
+      customerGst: data.customerGst || "",
+      customerAddress: data.customerAddress || "",
+      customerState: data.customerState || "",
+      docNumber: data.docNumber || `SAL-${Date.now().toString().slice(-6)}`,
+      date: data.date || new Date().toISOString().split('T')[0],
+      totalAmount: Number(data.totalAmount) || 0,
+      taxAmount: Number(data.taxAmount) || 0,
+      lineItems: (data.lineItems || []).map((item: any) => ({
+        description: item.description || "Unreadable Item",
+        amount: Number(item.amount) || 0,
+        hsnCode: item.hsnCode || "",
+        quantity: Number(item.quantity) || 1,
+        rate: Number(item.rate) || Number(item.amount) || 0
+      })),
       id: crypto.randomUUID(),
       type: 'sales_invoice' as SalesDocType,
       status: 'issued',
@@ -113,6 +122,8 @@ export const extractExpenseData = async (
 
     return {
       vendorName: rawJson.vendorName || "Unknown Vendor",
+      vendorGst: rawJson.vendorGst || "",
+      vendorAddress: rawJson.vendorAddress || "",
       docNumber: rawJson.docNumber || `EXT-${Date.now().toString().slice(-6)}`,
       date: rawJson.date || new Date().toISOString().split('T')[0],
       totalAmount: Number(rawJson.totalAmount) || 0,

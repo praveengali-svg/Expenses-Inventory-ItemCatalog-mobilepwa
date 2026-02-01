@@ -104,12 +104,13 @@ body {
 
 /* Global Contrast Improvements for Dark Mode */
 .text-slate-400 {
-  color: #94a3b8 !important;
+  color: #cbd5e1 !important;
+  /* Brighter slate (300) */
 }
 
-/* slate-400 */
 .text-slate-500 {
-  color: #cbd5e1 !important;
+  color: #f1f5f9 !important;
+  /* Very bright slate (100) */
 }
 
 /* slate-300 for 500 usage on dark */

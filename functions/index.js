@@ -54,7 +54,7 @@ const functionOptions = {
     secrets: [GEMINI_API_KEY],
     region: "us-central1",
     memory: "512MiB",
-    invoker: "public" // Still set this to attempt automatic public access
+    invoker: "public"
 };
 
 exports.extractExpenseDataProxy = onRequest(functionOptions, (req, res) => {
@@ -68,15 +68,17 @@ exports.extractExpenseDataProxy = onRequest(functionOptions, (req, res) => {
 
             console.log(`Processing expense for user: ${decodedToken.uid}`);
 
-            const systemInstruction = `You are an expert Indian financial auditor. Extract data from financial documents. Respond in JSON.`;
-            const prompt = `Extract financial data from this ${hint || 'document'}.`;
+            const systemInstruction = `You are an expert Indian financial auditor. Extract data from financial documents. Respond in JSON. Always find GSTIN numbers if present. Dates are often in Indian format (DD/MM/YYYY or DD-MM-YYYY); parse them accurately to ISO (YYYY-MM-DD).`;
+            const prompt = `Extract vendor details, GSTIN, and line items from this ${hint || 'document'}.`;
 
             const schema = {
                 type: "object",
                 properties: {
                     vendorName: { type: "string" },
+                    vendorGst: { type: "string" },
+                    vendorAddress: { type: "string" },
                     docNumber: { type: "string" },
-                    date: { type: "string" },
+                    date: { type: "string", description: "ISO date YYYY-MM-DD" },
                     totalAmount: { type: "number" },
                     taxAmount: { type: "number" },
                     type: { type: "string", enum: ["invoice", "expense", "purchase_order"] },
@@ -116,10 +118,38 @@ exports.extractSalesDataProxy = onRequest(functionOptions, (req, res) => {
             const decodedToken = await verifyToken(req);
             const { fileData, mimeType } = req.body.data || req.body;
 
-            const systemInstruction = `You are an expert Indian Logistics auditor. Extract data from this SALES INVOICE. Respond in JSON.`;
+            const systemInstruction = `You are an expert Indian Logistics auditor. Extract data from this SALES INVOICE. Respond in JSON. Dates are often in Indian format (DD/MM/YYYY); parse accurately to ISO (YYYY-MM-DD).`;
             const prompt = `Identify customer, GSTIN, Doc Number, Date, State, and detailed Line Items.`;
 
-            const result = await runGeminiExtraction(GEMINI_API_KEY.value(), fileData, mimeType, prompt, systemInstruction);
+            const schema = {
+                type: "object",
+                properties: {
+                    customerName: { type: "string" },
+                    customerGst: { type: "string" },
+                    customerAddress: { type: "string" },
+                    customerState: { type: "string" },
+                    docNumber: { type: "string" },
+                    date: { type: "string", description: "ISO date YYYY-MM-DD" },
+                    totalAmount: { type: "number" },
+                    taxAmount: { type: "number" },
+                    lineItems: {
+                        type: "array",
+                        items: {
+                            type: "object",
+                            properties: {
+                                description: { type: "string" },
+                                hsnCode: { type: "string" },
+                                quantity: { type: "number" },
+                                rate: { type: "number" },
+                                gstPercentage: { type: "number" },
+                                amount: { type: "number" }
+                            }
+                        }
+                    }
+                }
+            };
+
+            const result = await runGeminiExtraction(GEMINI_API_KEY.value(), fileData, mimeType, prompt, systemInstruction, schema);
             res.json({ result });
         } catch (err) {
             console.error(err);

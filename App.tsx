@@ -335,7 +335,16 @@ const App: React.FC = () => {
         </div>
       </main>
 
-      {selectedExpense && <ReceiptViewer expense={selectedExpense} onClose={() => setSelectedExpense(null)} onUpdate={async (u) => wrapChange(() => storageService.saveExpense(u))} />}
+      {selectedExpense && (
+        <ReceiptViewer
+          expense={selectedExpense}
+          onClose={() => setSelectedExpense(null)}
+          onUpdate={async (u) => {
+            await wrapChange(() => storageService.saveExpense(u));
+            setSelectedExpense({ ...u });
+          }}
+        />
+      )}
       {showScanner && <CameraScanner onCapture={(b) => { processFile({ base64: b, mimeType: 'image/jpeg', name: `sc_${Date.now()}.jpg` }); setShowScanner(false); }} onClose={() => setShowScanner(false)} title="Neural Audit" />}
       {showPOEditor && <PurchaseOrderEditor catalog={catalog} currentUser={user} onClose={() => setShowPOEditor(false)} onSave={() => wrapChange(() => Promise.resolve())} />}
 
