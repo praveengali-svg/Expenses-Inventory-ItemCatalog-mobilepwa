@@ -1,5 +1,4 @@
-import { httpsCallable } from "firebase/functions";
-import { functions } from "./firebase";
+import { auth } from "./firebase";
 import { ExpenseData, ExpenseCategory, DocumentType, SalesDocument, SalesDocType } from "../types";
 
 export interface GstVerificationResult {
@@ -7,6 +6,48 @@ export interface GstVerificationResult {
   address?: string;
   status?: string;
   sources: { uri: string; title: string }[];
+}
+
+// Helper to call Firebase Functions through Hosting Rewrites
+async function callProxy(action: string, data: any) {
+  const user = auth.currentUser;
+  // If no user, wait a bit in case auth is initializing
+  if (!user) {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+
+  const currentUser = auth.currentUser;
+  if (!currentUser) throw new Error("Authentication required. Please refresh the page.");
+
+  const token = await currentUser.getIdToken();
+  const endpoint = `/api/${action}`;
+
+  // onCall protocol requires 'data' wrapper if we were using it, 
+  // but since we are using 'onRequest', we can send it directly.
+  // Our function code handles both.
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({ data })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    let message = `Proxy Error (${response.status})`;
+    try {
+      const errorJson = JSON.parse(errorText);
+      message += `: ${errorJson.error || errorJson.message || errorText}`;
+    } catch {
+      message += `: ${errorText}`;
+    }
+    throw new Error(message);
+  }
+
+  const json = await response.json();
+  return json.result;
 }
 
 // Map of categories for consistency
@@ -24,23 +65,15 @@ const CATEGORIES: Record<string, ExpenseCategory> = {
 };
 
 export const verifyGstNumber = async (gstin: string): Promise<GstVerificationResult | null> => {
-  const proxy = httpsCallable(functions, 'verifyGstNumberProxy');
   try {
-    const result = await proxy({ gstin }) as any;
-    const { text, metadata } = result.data;
-
-    const sources = metadata?.groundingChunks
-      ?.filter((chunk: any) => chunk.web)
-      ?.map((chunk: any) => ({
-        uri: chunk.web!.uri,
-        title: chunk.web!.title || 'Verification Source'
-      })) || [];
+    const result = await callProxy('verifyGst', { gstin });
+    const { text } = result;
 
     return {
       businessName: text.match(/Name:?\s*([^\n,]+)/i)?.[1]?.trim() || text.split('\n')[0].substring(0, 50),
       address: text.match(/Address:?\s*([^\n]+)/i)?.[1]?.trim(),
       status: text.match(/Status:?\s*([^\n,]+)/i)?.[1]?.trim() || "Active",
-      sources
+      sources: []
     };
   } catch (err) {
     console.error("GST verification proxy failed", err);
@@ -53,10 +86,8 @@ export const extractSalesData = async (
   mimeType: string,
   fileName: string
 ): Promise<Partial<SalesDocument>> => {
-  const proxy = httpsCallable(functions, 'extractSalesDataProxy');
   try {
-    const result = await proxy({ fileData, mimeType }) as any;
-    const data = result.data;
+    const data = await callProxy('extractSales', { fileData, mimeType });
 
     return {
       ...data,
@@ -77,10 +108,8 @@ export const extractExpenseData = async (
   fileName: string,
   hintType?: DocumentType
 ): Promise<Partial<ExpenseData>> => {
-  const proxy = httpsCallable(functions, 'extractExpenseDataProxy');
   try {
-    const result = await proxy({ fileData, mimeType, hint: hintType }) as any;
-    const rawJson = result.data;
+    const rawJson = await callProxy('extractExpense', { fileData, mimeType, hint: hintType });
 
     return {
       vendorName: rawJson.vendorName || "Unknown Vendor",

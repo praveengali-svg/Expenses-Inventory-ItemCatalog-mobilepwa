@@ -6,6 +6,8 @@ import {
 import { AppStatus, ExpenseData, User, InventoryItem, SalesDocument, CatalogItem, SalesDocType, DocumentType } from './types';
 import { storageService } from './services/storage';
 import { extractExpenseData } from './services/gemini';
+import { auth } from './services/firebase';
+import { signInAnonymously } from 'firebase/auth';
 import { googleDriveService } from './services/googleDrive';
 import Dashboard from './components/Dashboard';
 import ReceiptViewer from './components/ReceiptViewer';
@@ -60,6 +62,12 @@ const App: React.FC = () => {
   }, [user]);
 
   useEffect(() => {
+    signInAnonymously(auth).catch((err) => {
+      console.error("Firebase Anonymous Auth failed", err);
+    });
+  }, []);
+
+  useEffect(() => {
     if (user) {
       loadLocalData();
       // Enforce role-based access for staff
@@ -84,11 +92,19 @@ const App: React.FC = () => {
         reader.onload = () => resolve(reader.result as string);
         reader.readAsDataURL(file);
       });
-      // Compress immediately for storage efficiency
-      fileData = await compressImage(rawData, 1200, 0.6);
+      // Compress only if it's an image
+      if (mimeType.startsWith('image/')) {
+        fileData = await compressImage(rawData, 1200, 0.6);
+      } else {
+        fileData = rawData;
+      }
     } else {
       // For camera/base64 inputs
-      fileData = await compressImage(file.base64, 1200, 0.6);
+      if (file.mimeType.startsWith('image/')) {
+        fileData = await compressImage(file.base64, 1200, 0.6);
+      } else {
+        fileData = file.base64;
+      }
       mimeType = file.mimeType;
       fileName = file.name;
     }

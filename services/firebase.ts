@@ -1,9 +1,10 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
 import { getFunctions } from "firebase/functions";
+import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyAHDcyORi6A9Vyf2MZ8QiHgO0USSDt7VcA",
+    apiKey: "AIzaSyCsAQML_mBVOCkI-br8O5fAFE6geSPire8",
     authDomain: "gen-lang-client-0883796692.firebaseapp.com",
     projectId: "gen-lang-client-0883796692",
     storageBucket: "gen-lang-client-0883796692.appspot.com",
@@ -13,7 +14,8 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const functions = getFunctions(app);
+const functions = getFunctions(app, "us-central1");
+const auth = getAuth(app);
 
 // Enable offline persistence
 // enableIndexedDbPersistence(db).catch((err) => {
@@ -26,4 +28,4 @@ const functions = getFunctions(app);
 //   }
 // });
 
-export { db, functions };
+export { db, functions, auth };

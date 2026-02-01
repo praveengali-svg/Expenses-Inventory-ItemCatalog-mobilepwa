@@ -7,7 +7,31 @@
             "**/.*",
             "**/node_modules/**"
         ],
+        "predeploy": [
+            "npm run build"
+        ],
         "rewrites": [
+            {
+                "source": "/api/extractExpense",
+                "run": {
+                    "serviceId": "extractexpensedataproxy",
+                    "region": "us-central1"
+                }
+            },
+            {
+                "source": "/api/extractSales",
+                "run": {
+                    "serviceId": "extractsalesdataproxy",
+                    "region": "us-central1"
+                }
+            },
+            {
+                "source": "/api/verifyGst",
+                "run": {
+                    "serviceId": "verifygstnumberproxy",
+                    "region": "us-central1"
+                }
+            },
             {
                 "source": "**",
                 "destination": "/index.html"
