@@ -7,6 +7,7 @@ import {
 import { SalesDocument, SalesDocType, InventoryItem, User as AppUser, LineItem, CatalogItem, ExpenseCategory } from '../types';
 import { storageService } from '../services/storage';
 import { verifyGstNumber, GstVerificationResult } from '../services/gemini';
+import CatalogLinkModal from './CatalogLinkModal';
 
 interface Props {
   type: SalesDocType;
@@ -50,17 +51,7 @@ const SalesDocEditor: React.FC<Props> = ({ type, doc, inventory, catalog, curren
   const [activeSearchIdx, setActiveSearchIdx] = useState<number | null>(null);
   const [itemSearchQuery, setItemSearchQuery] = useState("");
   const [showCustomerList, setShowCustomerList] = useState(false);
-
-  // Quick Create State
-  const [isQuickCreatingItem, setIsQuickCreatingItem] = useState(false);
-  const [quickCreateIdx, setQuickCreateIdx] = useState<number | null>(null);
-  const [quickCreateForm, setQuickCreateForm] = useState({
-    sku: '',
-    name: '',
-    hsnCode: '',
-    category: 'Product' as ExpenseCategory,
-    sellingPrice: 0
-  });
+  const [linkModalConfig, setLinkModalConfig] = useState<{ idx: number, query: string } | null>(null);
 
   const uomOptions = ["PCS", "SET", "PAIR", "KGS", "MTR", "NOS", "BOX", "PKT"];
 
@@ -151,55 +142,28 @@ const SalesDocEditor: React.FC<Props> = ({ type, doc, inventory, catalog, curren
     setItemSearchQuery("");
   };
 
-  const openQuickCreate = (idx: number, initialName: string) => {
-    setQuickCreateIdx(idx);
-    setQuickCreateForm({
-      ...quickCreateForm,
-      name: initialName,
-      sku: initialName.substring(0, 4).toUpperCase() + '-' + Date.now().toString().slice(-4),
-      sellingPrice: lineItems[idx].rate || 0,
-      hsnCode: '',
-      category: 'Product'
-    });
-    setIsQuickCreatingItem(true);
-    setActiveSearchIdx(null);
-  };
 
-  const handleQuickCreateSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (quickCreateIdx === null) return;
 
-    const newItem: CatalogItem = {
-      id: crypto.randomUUID(),
-      sku: quickCreateForm.sku.toUpperCase(),
-      name: quickCreateForm.name,
-      description: 'Quick added from sales workflow',
-      hsnCode: quickCreateForm.hsnCode,
-      gstPercentage: 18,
-      basePrice: 0,
-      sellingPrice: quickCreateForm.sellingPrice,
-      unitOfMeasure: 'PCS',
-      category: quickCreateForm.category,
-      type: 'good'
-    };
-
-    await storageService.saveCatalogItem(newItem);
-
-    // Select the new item in the row
+  const handleLinkItem = (index: number, item: CatalogItem) => {
     const newList = [...lineItems];
-    newList[quickCreateIdx] = {
-      ...newList[quickCreateIdx],
-      description: newItem.name,
-      sku: newItem.sku,
-      hsnCode: newItem.hsnCode,
-      rate: newItem.sellingPrice,
-      category: newItem.category,
-      amount: (newList[quickCreateIdx].quantity || 1) * newItem.sellingPrice
-    };
-    setLineItems(newList);
+    const defaultRate = item.sellingPrice || item.basePrice || 0;
 
-    setIsQuickCreatingItem(false);
-    setQuickCreateIdx(null);
+    newList[index] = {
+      ...newList[index],
+      description: item.name,
+      sku: item.sku,
+      hsnCode: item.hsnCode,
+      rate: defaultRate,
+      unitOfMeasure: item.unitOfMeasure || 'PCS',
+      gstPercentage: item.gstPercentage,
+      category: item.category,
+      amount: (newList[index].quantity || 1) * defaultRate
+    };
+
+    setLineItems(newList);
+    setLinkModalConfig(null);
+    setActiveSearchIdx(null);
+    setItemSearchQuery("");
   };
 
   const selectCustomer = (c: any) => {
@@ -497,7 +461,7 @@ const SalesDocEditor: React.FC<Props> = ({ type, doc, inventory, catalog, curren
                                   ))}
                                   <div className="border-t border-slate-50 my-1"></div>
                                   <button
-                                    onClick={() => openQuickCreate(idx, itemSearchQuery)}
+                                    onClick={() => setLinkModalConfig({ idx, query: itemSearchQuery })}
                                     className="w-full text-left px-5 py-3 hover:bg-blue-50 flex items-center gap-2 group"
                                   >
                                     <div className="bg-blue-600 text-white p-1 rounded-lg"><Plus size={14} /></div>
@@ -509,7 +473,7 @@ const SalesDocEditor: React.FC<Props> = ({ type, doc, inventory, catalog, curren
                                 </>
                               ) : (
                                 <button
-                                  onClick={() => openQuickCreate(idx, itemSearchQuery)}
+                                  onClick={() => setLinkModalConfig({ idx, query: itemSearchQuery })}
                                   className="w-full text-left px-5 py-4 hover:bg-blue-50 flex items-center gap-3 group"
                                 >
                                   <div className="bg-blue-600 text-white p-2 rounded-xl shadow-lg shadow-blue-500/20"><Plus size={18} /></div>
@@ -529,6 +493,15 @@ const SalesDocEditor: React.FC<Props> = ({ type, doc, inventory, catalog, curren
                             </div>
                           )}
                         </div>
+                      </td>
+                      <td className="w-10 px-0 py-4 text-center align-top pt-8">
+                        <button
+                          onClick={() => setLinkModalConfig({ idx, query: item.description })}
+                          className={`p-2 rounded-xl transition-all ${item.sku ? 'text-green-600 bg-green-50 hover:bg-green-100' : 'text-slate-300 bg-slate-50 hover:bg-blue-50 hover:text-blue-600'}`}
+                          title="Link to Catalog SKU"
+                        >
+                          <Tag size={16} />
+                        </button>
                       </td>
                       <td className="px-6 py-4 text-center">
                         <div className="flex flex-col gap-2 items-center">
@@ -615,92 +588,12 @@ const SalesDocEditor: React.FC<Props> = ({ type, doc, inventory, catalog, curren
       </div>
 
       {/* Quick Item Create Modal */}
-      {isQuickCreatingItem && (
-        <div className="fixed inset-0 z-[400] bg-slate-950/80 backdrop-blur-xl flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-md rounded-[3rem] p-8 shadow-2xl animate-in zoom-in-95 overflow-hidden border border-slate-100">
-            <div className="flex justify-between items-center mb-6">
-              <div className="flex items-center gap-3">
-                <div className="bg-blue-600 p-2.5 rounded-2xl text-white shadow-lg"><BookPlus size={20} /></div>
-                <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">Add to Master Catalog</h3>
-              </div>
-              <button onClick={() => setIsQuickCreatingItem(false)} className="p-2 text-slate-400 hover:text-slate-900 transition-colors"><X size={20} /></button>
-            </div>
-
-            <form onSubmit={handleQuickCreateSubmit} className="space-y-6">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Item Name (Spec)</label>
-                  <input
-                    type="text" required
-                    value={quickCreateForm.name}
-                    onChange={e => setQuickCreateForm({ ...quickCreateForm, name: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-100 px-5 py-4 rounded-2xl font-black text-slate-900 text-sm outline-none"
-                    placeholder="Enter full specification name"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Unique SKU</label>
-                    <input
-                      type="text" required
-                      value={quickCreateForm.sku}
-                      onChange={e => setQuickCreateForm({ ...quickCreateForm, sku: e.target.value.toUpperCase() })}
-                      className="w-full bg-slate-50 border border-slate-100 px-5 py-4 rounded-2xl font-black text-slate-900 text-xs outline-none"
-                      placeholder="SKU-XXXX"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">HSN Code</label>
-                    <input
-                      type="text" required
-                      value={quickCreateForm.hsnCode}
-                      onChange={e => setQuickCreateForm({ ...quickCreateForm, hsnCode: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-100 px-5 py-4 rounded-2xl font-black text-slate-900 text-xs outline-none"
-                      placeholder="8507XXXX"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Category</label>
-                    <select
-                      value={quickCreateForm.category}
-                      onChange={e => setQuickCreateForm({ ...quickCreateForm, category: e.target.value as any })}
-                      className="w-full bg-slate-50 border border-slate-100 px-5 py-4 rounded-2xl font-black text-slate-900 text-[10px] uppercase outline-none"
-                    >
-                      {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Sale Price (₹)</label>
-                    <input
-                      type="number" required
-                      value={quickCreateForm.sellingPrice}
-                      onChange={e => setQuickCreateForm({ ...quickCreateForm, sellingPrice: Number(e.target.value) })}
-                      className="w-full bg-slate-50 border border-slate-100 px-5 py-4 rounded-2xl font-black text-slate-900 text-sm outline-none"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 flex items-start gap-3">
-                <AlertCircle className="text-blue-500 shrink-0" size={16} />
-                <p className="text-[9px] font-bold text-blue-700 leading-relaxed uppercase">
-                  Adding this item will make it permanently available in the Master Catalog for all future invoices and purchase orders.
-                </p>
-              </div>
-
-              <button
-                type="submit"
-                className="w-full bg-blue-600 text-white py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-[0.2em] shadow-xl hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
-              >
-                <Save size={18} /> Register Item & Select
-              </button>
-            </form>
-          </div>
-        </div>
+      {linkModalConfig && (
+        <CatalogLinkModal
+          initialQuery={linkModalConfig.query}
+          onClose={() => setLinkModalConfig(null)}
+          onSelect={(item) => handleLinkItem(linkModalConfig.idx, item)}
+        />
       )}
     </div>
   );

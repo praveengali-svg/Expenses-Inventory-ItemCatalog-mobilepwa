@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import {
   ShoppingBag, Plus, Search, FileText, Printer, Trash2,
   ArrowRightLeft, FileCheck, ClipboardList, PackageCheck, Eye,
-  ChevronDown, X, Edit3, User, Calendar, Tag, IndianRupee, PrinterIcon, DownloadCloud, ArrowRight, Layers
+  ChevronDown, X, Edit3, User, Calendar, Tag, IndianRupee, PrinterIcon, DownloadCloud, ArrowRight, Layers, ChevronUp, ChevronsUpDown
 } from 'lucide-react';
 import { SalesDocument, SalesDocType, InventoryItem, User as AppUser, LineItem, CatalogItem } from '../types';
 import { storageService } from '../services/storage';
@@ -28,17 +28,38 @@ const Sales: React.FC<Props> = ({ sales, inventory, catalog, currentUser, onUpda
   const [selectedDoc, setSelectedDoc] = useState<SalesDocument | null>(null);
   const [viewingDoc, setViewingDoc] = useState<SalesDocument | null>(null);
   const [creationType, setCreationType] = useState<SalesDocType>('sales_invoice');
+  const [sortConfig, setSortConfig] = useState<{ key: keyof SalesDocument; direction: 'asc' | 'desc' } | null>({ key: 'createdAt', direction: 'desc' });
 
   useEffect(() => {
     setFilterType(defaultFilter);
   }, [defaultFilter]);
 
-  const filteredSales = sales.filter(s => {
-    const matchesSearch = s.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.docNumber.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = filterType === "All" || s.type === filterType;
-    return matchesSearch && matchesType;
-  });
+  const handleSort = (key: keyof SalesDocument) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const filteredSales = React.useMemo(() => {
+    let result = sales.filter(s => {
+      const matchesSearch = s.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.docNumber.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesType = filterType === "All" || s.type === filterType;
+      return matchesSearch && matchesType;
+    });
+
+    if (sortConfig) {
+      result.sort((a, b) => {
+        if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (a[sortConfig.key] > b[sortConfig.key]) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return result;
+  }, [sales, searchTerm, filterType, sortConfig]);
 
   const docLabels: Record<SalesDocType, string> = {
     sales_invoice: 'Sales Invoice',
@@ -169,11 +190,51 @@ const Sales: React.FC<Props> = ({ sales, inventory, catalog, currentUser, onUpda
           <table className="w-full text-left min-w-[1000px]">
             <thead>
               <tr className="bg-slate-50">
-                <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Document</th>
-                <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Customer</th>
-                <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Status</th>
-                <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Balance</th>
-                <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Total</th>
+                <th
+                  className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-pointer hover:text-slate-600 transition-colors group"
+                  onClick={() => handleSort('docNumber')}
+                >
+                  <div className="flex items-center gap-2">
+                    Document
+                    {sortConfig?.key === 'docNumber' ? (sortConfig.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />) : <ChevronsUpDown size={12} className="opacity-30" />}
+                  </div>
+                </th>
+                <th
+                  className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-pointer hover:text-slate-600 transition-colors group"
+                  onClick={() => handleSort('customerName')}
+                >
+                  <div className="flex items-center gap-2">
+                    Customer
+                    {sortConfig?.key === 'customerName' ? (sortConfig.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />) : <ChevronsUpDown size={12} className="opacity-30" />}
+                  </div>
+                </th>
+                <th
+                  className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center cursor-pointer hover:text-slate-600 transition-colors group"
+                  onClick={() => handleSort('status')}
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    Status
+                    {sortConfig?.key === 'status' ? (sortConfig.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />) : <ChevronsUpDown size={12} className="opacity-30" />}
+                  </div>
+                </th>
+                <th
+                  className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right cursor-pointer hover:text-slate-600 transition-colors group"
+                  onClick={() => handleSort('balanceAmount')}
+                >
+                  <div className="flex items-center justify-end gap-2">
+                    Balance
+                    {sortConfig?.key === 'balanceAmount' ? (sortConfig.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />) : <ChevronsUpDown size={12} className="opacity-30" />}
+                  </div>
+                </th>
+                <th
+                  className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right cursor-pointer hover:text-slate-600 transition-colors group"
+                  onClick={() => handleSort('totalAmount')}
+                >
+                  <div className="flex items-center justify-end gap-2">
+                    Total
+                    {sortConfig?.key === 'totalAmount' ? (sortConfig.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />) : <ChevronsUpDown size={12} className="opacity-30" />}
+                  </div>
+                </th>
                 <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
               </tr>
             </thead>

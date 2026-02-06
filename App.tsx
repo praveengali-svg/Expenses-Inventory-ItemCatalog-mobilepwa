@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { compressImage } from './utils/image';
 import {
-  LayoutDashboard, History, ScanLine, Receipt, RefreshCw, Camera, Upload, Box, ShoppingBag, BookOpen, Building2, Wallet, Plus, FilePlus, Zap, ImageIcon, ChevronLeft, ChevronRight, Menu, FileText, ClipboardList, ArrowRightLeft, PackageCheck, XCircle, ChevronDown, IndianRupee, Cloud, CloudOff, ShieldCheck, CheckCircle2, AlertCircle, FileCheck, PieChart
+  LayoutDashboard, History, ScanLine, Receipt, RefreshCw, Camera, Upload, Box, ShoppingBag, BookOpen, Building2, Wallet, Plus, FilePlus, Zap, ImageIcon, ChevronLeft, ChevronRight, Menu, FileText, ClipboardList, ArrowRightLeft, PackageCheck, XCircle, ChevronDown, IndianRupee, Cloud, CloudOff, ShieldCheck, CheckCircle2, AlertCircle, FileCheck, PieChart, ChevronUp, ChevronsUpDown
 } from 'lucide-react';
-import { AppStatus, ExpenseData, User, InventoryItem, SalesDocument, CatalogItem, SalesDocType, DocumentType } from './types';
+import { AppStatus, ExpenseData, User, InventoryItem, SalesDocument, CatalogItem, SalesDocType, DocumentType, ExpenseCategory } from './types';
 import { storageService } from './services/storage';
 import { extractExpenseData } from './services/gemini';
 import { auth } from './services/firebase';
@@ -41,6 +41,9 @@ const App: React.FC = () => {
   const [isPurchasesExpanded, setIsPurchasesExpanded] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [cloudStatus, setCloudStatus] = useState<'synced' | 'syncing' | 'offline' | 'error'>('offline');
+  const [opexFilter, setOpexFilter] = useState<ExpenseCategory | 'All'>('All');
+  const [isOpexMenuOpen, setIsOpexMenuOpen] = useState(false);
+  const [expenseSort, setExpenseSort] = useState<{ key: 'vendorName' | 'date' | 'totalAmount' | 'docNumber' | 'category', direction: 'asc' | 'desc' } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadLocalData = useCallback(async () => {
@@ -74,6 +77,7 @@ const App: React.FC = () => {
       if (user.role === 'staff' && (activeTab === 'dashboard' || activeTab === 'reports' || activeTab === 'opex' || activeTab === 'purchase_order' || activeTab === 'inventory' || activeTab === 'manufacturing' || activeTab === 'media' || activeTab === 'users' || activeTab === 'proforma' || activeTab === 'quotation' || activeTab === 'credit_note' || activeTab === 'delivery_challan')) {
         setActiveTab('purchase_invoice');
       }
+      if (activeTab === 'opex') setIsOpexMenuOpen(true);
     }
   }, [user, activeTab, loadLocalData]);
 
@@ -174,50 +178,113 @@ const App: React.FC = () => {
 
   const isSalesTab = ['sales_invoice', 'proforma', 'quotation', 'credit_note', 'delivery_challan'].includes(activeTab);
 
-  const renderDocLog = (data: ExpenseData[], title: string, subtitle: string, isPO = false) => (
-    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700 antigravity-card">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 px-4">
-        <div>
-          <h3 className="text-3xl md:text-4xl font-black text-white tracking-tighter uppercase">{title}</h3>
-          <p className="text-blue-400 text-[10px] font-black mt-2 uppercase tracking-[0.4em]">{subtitle}</p>
+  const handleExpenseSort = (key: 'vendorName' | 'date' | 'totalAmount' | 'docNumber' | 'category') => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (expenseSort && expenseSort.key === key && expenseSort.direction === 'asc') {
+      direction = 'desc';
+    }
+    setExpenseSort({ key, direction });
+  };
+
+  const sortExpenses = (data: ExpenseData[]) => {
+    if (!expenseSort) return data;
+    return [...data].sort((a, b) => {
+      let aVal: any = a[expenseSort.key as keyof ExpenseData];
+      let bVal: any = b[expenseSort.key as keyof ExpenseData];
+
+      // Handle category specially since it's derived
+      if (expenseSort.key === 'category') {
+        aVal = a.lineItems?.[0]?.category || 'Other';
+        bVal = b.lineItems?.[0]?.category || 'Other';
+      }
+
+      // Handle strings case-insensitively
+
+      // Handle strings case-insensitively
+      if (typeof aVal === 'string') aVal = aVal.toLowerCase();
+      if (typeof bVal === 'string') bVal = bVal.toLowerCase();
+
+      // Handle nulls/undefined
+      if (!aVal) return 1;
+      if (!bVal) return -1;
+
+      if (aVal < bVal) return expenseSort.direction === 'asc' ? -1 : 1;
+      if (aVal > bVal) return expenseSort.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+  };
+
+  const renderDocLog = (data: ExpenseData[], title: string, subtitle: string, isPO = false) => {
+    const sortedData = sortExpenses(data);
+    return (
+      <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700 antigravity-card">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 px-4">
+          <div>
+            <h3 className="text-3xl md:text-4xl font-black text-white tracking-tighter uppercase">{title}</h3>
+            <p className="text-blue-400 text-[10px] font-black mt-2 uppercase tracking-[0.4em]">{subtitle}</p>
+          </div>
+          <div className="flex flex-wrap gap-2 md:gap-4 w-full md:w-auto">
+            {isPO && <button onClick={() => setShowPOEditor(true)} className="flex-1 bg-orange-600 text-white px-6 py-4 rounded-3xl font-black text-[10px] uppercase tracking-widest shadow-xl flex items-center justify-center gap-3"><FilePlus size={18} /> New PO</button>}
+            <button onClick={() => setShowScanner(true)} className="flex-1 bg-white/10 text-white px-6 py-4 rounded-3xl font-black text-[10px] uppercase tracking-widest border border-white/10 flex items-center justify-center gap-3"><Camera size={18} /> Scan</button>
+            <button onClick={() => fileInputRef.current?.click()} className="flex-1 bg-blue-600 text-white px-6 py-4 rounded-3xl font-black text-[10px] uppercase tracking-widest shadow-xl flex items-center justify-center gap-3"><Upload size={18} /> Ingest</button>
+            <input type="file" ref={fileInputRef} onChange={(e) => { const f = e.target.files?.[0]; if (f) processFile(f); }} className="hidden" accept="image/*,application/pdf" />
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2 md:gap-4 w-full md:w-auto">
-          {isPO && <button onClick={() => setShowPOEditor(true)} className="flex-1 bg-orange-600 text-white px-6 py-4 rounded-3xl font-black text-[10px] uppercase tracking-widest shadow-xl flex items-center justify-center gap-3"><FilePlus size={18} /> New PO</button>}
-          <button onClick={() => setShowScanner(true)} className="flex-1 bg-white/10 text-white px-6 py-4 rounded-3xl font-black text-[10px] uppercase tracking-widest border border-white/10 flex items-center justify-center gap-3"><Camera size={18} /> Scan</button>
-          <button onClick={() => fileInputRef.current?.click()} className="flex-1 bg-blue-600 text-white px-6 py-4 rounded-3xl font-black text-[10px] uppercase tracking-widest shadow-xl flex items-center justify-center gap-3"><Upload size={18} /> Ingest</button>
-          <input type="file" ref={fileInputRef} onChange={(e) => { const f = e.target.files?.[0]; if (f) processFile(f); }} className="hidden" accept="image/*,application/pdf" />
+
+        <div className="glass-container rounded-[2.5rem] md:rounded-[4rem] overflow-hidden">
+          <div className="overflow-x-auto no-scrollbar">
+            <table className="w-full text-left min-w-[800px]">
+              <thead>
+                <tr className="bg-white/5">
+                  <th className="px-10 py-8 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-pointer hover:text-white transition-colors group" onClick={() => handleExpenseSort('docNumber')}>
+                    <div className="flex items-center gap-2">
+                      Type / Inv#
+                      {expenseSort?.key === 'docNumber' ? (expenseSort.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />) : <ChevronsUpDown size={12} className="opacity-30" />}
+                    </div>
+                  </th>
+                  <th className="px-10 py-8 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-pointer hover:text-white transition-colors group" onClick={() => handleExpenseSort('vendorName')}>
+                    <div className="flex items-center gap-2">
+                      Issuer
+                      {expenseSort?.key === 'vendorName' ? (expenseSort.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />) : <ChevronsUpDown size={12} className="opacity-30" />}
+                    </div>
+                  </th>
+                  <th className="px-10 py-8 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center cursor-pointer hover:text-white transition-colors group" onClick={() => handleExpenseSort('category')}>
+                    <div className="flex items-center justify-center gap-2">
+                      Tag
+                      {expenseSort?.key === 'category' ? (expenseSort.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />) : <ChevronsUpDown size={12} className="opacity-30" />}
+                    </div>
+                  </th>
+                  <th className="px-10 py-8 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center cursor-pointer hover:text-white transition-colors group" onClick={() => handleExpenseSort('date')}>
+                    <div className="flex items-center justify-center gap-2">
+                      Audit
+                      {expenseSort?.key === 'date' ? (expenseSort.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />) : <ChevronsUpDown size={12} className="opacity-30" />}
+                    </div>
+                  </th>
+                  <th className="px-10 py-8 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right cursor-pointer hover:text-white transition-colors group" onClick={() => handleExpenseSort('totalAmount')}>
+                    <div className="flex items-center justify-end gap-2">
+                      Total
+                      {expenseSort?.key === 'totalAmount' ? (expenseSort.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />) : <ChevronsUpDown size={12} className="opacity-30" />}
+                    </div>
+                  </th>
+                  <th className="px-10 py-8 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {sortedData.map(exp => (
+                  <ExpenseListRow
+                    key={exp.id} expense={exp} onView={setSelectedExpense}
+                    onDelete={async (id) => { if (confirm("Purge document?")) await wrapChange(() => storageService.deleteExpense(id)); }}
+                    onUpdate={async (u) => await wrapChange(() => storageService.saveExpense(u))}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {data.length === 0 && <div className="py-48 text-center text-slate-600"><History size={64} className="mx-auto mb-6 opacity-20" /><h3 className="font-black uppercase tracking-[0.5em]">Vault Idle</h3></div>}
         </div>
       </div>
-
-      <div className="glass-container rounded-[2.5rem] md:rounded-[4rem] overflow-hidden">
-        <div className="overflow-x-auto no-scrollbar">
-          <table className="w-full text-left min-w-[800px]">
-            <thead>
-              <tr className="bg-white/5">
-                <th className="px-10 py-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Type</th>
-                <th className="px-10 py-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Issuer</th>
-                <th className="px-10 py-8 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Tag</th>
-                <th className="px-10 py-8 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Audit</th>
-                <th className="px-10 py-8 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Total</th>
-                <th className="px-10 py-8 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {data.map(exp => (
-                <ExpenseListRow
-                  key={exp.id} expense={exp} onView={setSelectedExpense}
-                  onDelete={async (id) => { if (confirm("Purge document?")) await wrapChange(() => storageService.deleteExpense(id)); }}
-                  onUpdate={async (u) => await wrapChange(() => storageService.saveExpense(u))}
-                />
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {data.length === 0 && <div className="py-48 text-center text-slate-600"><History size={64} className="mx-auto mb-6 opacity-20" /><h3 className="font-black uppercase tracking-[0.5em]">Vault Idle</h3></div>}
-      </div>
-    </div>
-  );
-
+    );
+  };
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col md:flex-row font-sans selection:bg-blue-500/30 overflow-x-hidden">
       {/* Sidebar */}
@@ -237,7 +304,40 @@ const App: React.FC = () => {
           <div className="pt-6">
             <p className={`text-[10px] font-black text-slate-600 uppercase tracking-[0.5em] mb-4 px-4 ${isSidebarCollapsed ? 'hidden' : ''}`}>Purchases</p>
             <NavItem id="purchase_invoice" label="Invoices" icon={Receipt} active={activeTab === 'purchase_invoice'} collapsed={isSidebarCollapsed} onClick={() => { setActiveTab('purchase_invoice'); setIsMobileMenuOpen(false); }} />
-            {user.role === 'admin' && <NavItem id="opex" label="Expenses" icon={Wallet} active={activeTab === 'opex'} collapsed={isSidebarCollapsed} onClick={() => { setActiveTab('opex'); setIsMobileMenuOpen(false); }} />}
+            {user.role === 'admin' && (
+              <div className="relative">
+                <button
+                  onClick={() => { setActiveTab('opex'); setIsOpexMenuOpen(!isOpexMenuOpen); }}
+                  className={`w-full flex items-center justify-between px-5 py-4 rounded-[1.5rem] text-[10px] font-black uppercase tracking-[0.2em] transition-all ${activeTab === 'opex' ? 'bg-blue-600 text-white shadow-[0_20px_50px_-10px_rgba(37,99,235,0.6)] z-10' : 'text-slate-500 hover:text-white hover:bg-white/5'}`}
+                >
+                  <div className="flex items-center gap-4">
+                    <Wallet size={18} className={activeTab === 'opex' ? 'scale-110' : 'opacity-60'} />
+                    {!isSidebarCollapsed && <span>Op Ex</span>}
+                  </div>
+                  {!isSidebarCollapsed && (isOpexMenuOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}
+                </button>
+                {/* Manual check for "opex" active tab or if menu is force open */}
+                {isOpexMenuOpen && !isSidebarCollapsed && (
+                  <div className="ml-8 mt-2 space-y-1 border-l-2 border-white/10 pl-4 animate-in slide-in-from-top-2">
+                    {['Salaries', 'Rent', 'Utilities', 'IT', 'Fees', 'R&D', 'Marketing', 'Other'].map((cat) => (
+                      <button
+                        key={cat}
+                        onClick={() => { setActiveTab('opex'); setOpexFilter(cat as ExpenseCategory); setIsMobileMenuOpen(false); }}
+                        className={`block w-full text-left py-2 text-[9px] font-bold uppercase tracking-widest transition-colors ${opexFilter === cat ? 'text-blue-400' : 'text-slate-500 hover:text-slate-300'}`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                    <button
+                      onClick={() => { setActiveTab('opex'); setOpexFilter('All'); setIsMobileMenuOpen(false); }}
+                      className={`block w-full text-left py-2 text-[9px] font-bold uppercase tracking-widest transition-colors ${opexFilter === 'All' ? 'text-blue-400' : 'text-slate-500 hover:text-slate-300'}`}
+                    >
+                      View All
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
             {user.role === 'admin' && <NavItem id="purchase_order" label="Orders" icon={FileText} active={activeTab === 'purchase_order'} collapsed={isSidebarCollapsed} onClick={() => { setActiveTab('purchase_order'); setIsMobileMenuOpen(false); }} />}
           </div>
           <div className="pt-6">
@@ -323,7 +423,7 @@ const App: React.FC = () => {
             )}
             {activeTab === 'purchase_invoice' && renderDocLog(expenses.filter(e => e.type === 'invoice'), "Purchase Invoices", "Supply Flow")}
             {activeTab === 'purchase_order' && renderDocLog(expenses.filter(e => e.type === 'purchase_order'), "Orders", "Formal Procurement", true)}
-            {activeTab === 'opex' && renderDocLog(expenses.filter(e => e.type === 'expense'), "Operations", "Overhead Ledger")}
+            {activeTab === 'opex' && renderDocLog(expenses.filter(e => e.type === 'expense' && (opexFilter === 'All' || e.lineItems?.some(i => i.category === opexFilter))), `OpEx: ${opexFilter}`, "Overhead Ledger")}
             {isSalesTab && <Sales sales={sales} inventory={inventory} catalog={catalog} currentUser={user} onUpdate={loadLocalData} defaultFilter={activeTab as SalesDocType} />}
             {activeTab === 'inventory' && <Inventory items={inventory} catalog={catalog} onUpdate={loadLocalData} />}
             {activeTab === 'catalog' && <Catalog items={catalog} inventory={inventory} currentUser={user} onUpdate={loadLocalData} />}

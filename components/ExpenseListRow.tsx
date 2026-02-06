@@ -1,7 +1,8 @@
 
 import React, { useState } from 'react';
-import { ExpenseData, LineItem, ExpenseCategory } from '../types';
-import { ChevronDown, ChevronUp, Eye, Trash2, Building2, Receipt, Calendar, User, Edit3, Save, XCircle, Tag, Plus } from 'lucide-react';
+import { ExpenseData, LineItem, ExpenseCategory, CatalogItem } from '../types';
+import { ChevronDown, ChevronUp, Eye, Trash2, Building2, Receipt, Calendar, User, Edit3, Save, XCircle, Tag, Plus, Link as LinkIcon } from 'lucide-react';
+import CatalogLinkModal from './CatalogLinkModal';
 
 interface Props {
   expense: ExpenseData;
@@ -14,9 +15,19 @@ const ExpenseListRow: React.FC<Props> = ({ expense, onDelete, onView, onUpdate }
   const [isExpanded, setIsExpanded] = useState(false);
   const [showAllItems, setShowAllItems] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState<ExpenseData>({ ...expense });
 
-  const categories: ExpenseCategory[] = ["Parts", "Product", "Raw Materials", "Consumables", "Service", "Other", "Purchase", "Courier", "Transportation", "Porter"];
+  const [editForm, setEditForm] = useState<ExpenseData>({ ...expense });
+  const [linkModalConfig, setLinkModalConfig] = useState<{ idx: number, query: string } | null>(null);
+
+  // Sync state with props when data changes. 
+  // We removed isEditing from deps to prevent reverting to stale props immediately after 'Save' (when isEditing becomes false but props haven't updated yet).
+  React.useEffect(() => {
+    if (!isEditing) {
+      setEditForm({ ...expense });
+    }
+  }, [expense]);
+
+  const categories: ExpenseCategory[] = ["Parts", "Product", "Raw Materials", "Consumables", "Service", "Other", "Purchase", "Courier", "Transportation", "Porter", "Salaries", "Rent", "Utilities", "IT", "Fees", "R&D", "Marketing"];
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -36,6 +47,13 @@ const ExpenseListRow: React.FC<Props> = ({ expense, onDelete, onView, onUpdate }
     'Transportation': 'bg-cyan-50 text-cyan-600 border-cyan-100',
     'Porter': 'bg-orange-50 text-orange-600 border-orange-100',
     'Consumables': 'bg-teal-50 text-teal-600 border-teal-100',
+    'Salaries': 'bg-rose-50 text-rose-600 border-rose-100',
+    'Rent': 'bg-fuchsia-50 text-fuchsia-600 border-fuchsia-100',
+    'Utilities': 'bg-yellow-50 text-yellow-600 border-yellow-100',
+    'IT': 'bg-sky-50 text-sky-600 border-sky-100',
+    'Fees': 'bg-red-50 text-red-600 border-red-100',
+    'R&D': 'bg-violet-50 text-violet-600 border-violet-100',
+    'Marketing': 'bg-lime-50 text-lime-600 border-lime-100'
   };
 
   // Determine "Primary" category for the row badge based on the first item
@@ -58,6 +76,22 @@ const ExpenseListRow: React.FC<Props> = ({ expense, onDelete, onView, onUpdate }
 
     const newTotal = newList.reduce((acc, item) => acc + (item.amount || 0), 0);
     setEditForm({ ...editForm, lineItems: newList, totalAmount: newTotal });
+
+  };
+
+  const handleLinkItem = (index: number, item: CatalogItem) => {
+    if (!item || !item.sku) return;
+    const newList = [...(editForm.lineItems || [])];
+    newList[index] = {
+      ...newList[index],
+      sku: item.sku,
+      hsnCode: item.hsnCode || newList[index].hsnCode, // Keep existing if missing
+      description: item.name,
+      category: item.category,
+      unitOfMeasure: item.unitOfMeasure || 'PCS'
+    };
+    setEditForm({ ...editForm, lineItems: newList });
+    setLinkModalConfig(null);
   };
 
   const handleAddItem = () => {
@@ -74,6 +108,8 @@ const ExpenseListRow: React.FC<Props> = ({ expense, onDelete, onView, onUpdate }
 
   const handleSave = () => {
     if (onUpdate) onUpdate(editForm);
+    // Do NOT set isEditing(false) immediately if you want to avoid optimistic revert. 
+    // However, typically we close the form. The useEffect will handle the update when props change.
     setIsEditing(false);
   };
 
@@ -153,7 +189,7 @@ const ExpenseListRow: React.FC<Props> = ({ expense, onDelete, onView, onUpdate }
                       <button onClick={handleSave} className="flex items-center gap-1.5 text-[9px] font-black text-white bg-blue-600 px-3 py-1.5 rounded-xl shadow-md hover:bg-blue-700 transition-colors uppercase tracking-widest">
                         <Save size={14} /> Commit Edit
                       </button>
-                      <button onClick={() => setIsEditing(false)} className="flex items-center gap-1.5 text-[9px] font-black text-slate-500 bg-white border border-slate-200 px-3 py-1.5 rounded-xl hover:bg-slate-100 transition-colors uppercase tracking-widest">
+                      <button onClick={() => { setEditForm({ ...expense }); setIsEditing(false); }} className="flex items-center gap-1.5 text-[9px] font-black text-slate-500 bg-white border border-slate-200 px-3 py-1.5 rounded-xl hover:bg-slate-100 transition-colors uppercase tracking-widest">
                         <XCircle size={14} /> Discard
                       </button>
                     </>
@@ -197,8 +233,19 @@ const ExpenseListRow: React.FC<Props> = ({ expense, onDelete, onView, onUpdate }
                         ) : (
                           <div className="space-y-1">
                             <p className="text-xs font-bold text-slate-800">{item.description}</p>
-                            <span className="text-[8px] font-black text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded uppercase">{item.category}</span>
+                            <div className="flex flex-wrap gap-2 items-center">
+                              <span className="text-[8px] font-black text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded uppercase">{item.category}</span>
+                              {item.sku && <span className="text-[8px] font-black bg-orange-50 text-orange-600 px-1.5 py-0.5 rounded border border-orange-100 flex items-center gap-1"><LinkIcon size={8} /> {item.sku}</span>}
+                            </div>
                           </div>
+                        )}
+                        {isEditing && (
+                          <button
+                            onClick={() => setLinkModalConfig({ idx, query: item.description })}
+                            className="mt-2 text-[9px] font-bold text-blue-600 flex items-center gap-1 hover:underline"
+                          >
+                            <Tag size={10} /> {item.sku ? 'Change Link' : 'Link SKU'}
+                          </button>
                         )}
                       </td>
                       <td className="px-6 py-4 text-center">
@@ -279,6 +326,15 @@ const ExpenseListRow: React.FC<Props> = ({ expense, onDelete, onView, onUpdate }
           </td>
         </tr>
       )}
+      {
+        linkModalConfig && (
+          <CatalogLinkModal
+            initialQuery={linkModalConfig.query}
+            onClose={() => setLinkModalConfig(null)}
+            onSelect={(item) => handleLinkItem(linkModalConfig.idx, item)}
+          />
+        )
+      }
     </>
   );
 };

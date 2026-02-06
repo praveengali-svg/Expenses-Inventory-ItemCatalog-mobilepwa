@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { X, Save, Plus, Trash2, IndianRupee, Tag, ShoppingBag, Truck, Calendar, User, Box, Sparkles, PlusCircle } from 'lucide-react';
 import { ExpenseData, LineItem, CatalogItem, User as AppUser, ExpenseCategory } from '../types';
 import { storageService } from '../services/storage';
+import CatalogLinkModal from './CatalogLinkModal';
 
 interface Props {
   catalog: CatalogItem[];
@@ -22,7 +23,8 @@ const PurchaseOrderEditor: React.FC<Props> = ({ catalog, currentUser, onClose, o
   const [itemSearchQuery, setItemSearchQuery] = useState("");
   const [vendorSearchQuery, setVendorSearchQuery] = useState("");
   const [showVendorSuggestions, setShowVendorSuggestions] = useState(false);
-  const [showQuickAdd, setShowQuickAdd] = useState<{ idx: number, name: string } | null>(null);
+  // Replaced showQuickAdd with linkModalConfig
+  const [linkModalConfig, setLinkModalConfig] = useState<{ idx: number, query: string } | null>(null);
 
   const uomOptions = ["PCS", "SET", "PAIR", "KGS", "MTR", "NOS", "BOX", "PKT"];
 
@@ -74,25 +76,22 @@ const PurchaseOrderEditor: React.FC<Props> = ({ catalog, currentUser, onClose, o
     setItemSearchQuery("");
   };
 
-  const handleQuickAdd = async (idx: number, name: string, sku: string, hsn: string) => {
-    const newItem: CatalogItem = {
-      id: crypto.randomUUID(),
-      sku,
-      name,
-      description: `Auto-generated during PO: ${docNumber}`,
-      hsnCode: hsn,
-      gstPercentage: 18,
-      basePrice: lineItems[idx].rate || 0,
-      sellingPrice: 0,
-      unitOfMeasure: lineItems[idx].unitOfMeasure || 'PCS',
-      category: 'Product',
-      type: 'good'
+  const handleLinkItem = (index: number, item: CatalogItem) => {
+    const newList = [...lineItems];
+    // Consolidate updates to prevent race conditions
+    newList[index] = {
+      ...newList[index],
+      sku: item.sku,
+      hsnCode: item.hsnCode,
+      description: item.name, // Sync name
+      rate: item.basePrice || item.sellingPrice || 0, // Prefer base price for PO
+      unitOfMeasure: item.unitOfMeasure || 'PCS',
+      category: item.category
     };
+    newList[index].amount = (newList[index].quantity || 0) * (newList[index].rate || 0);
 
-    await storageService.saveCatalogItem(newItem);
-    handleUpdateItem(idx, 'sku', sku);
-    handleUpdateItem(idx, 'hsnCode', hsn);
-    setShowQuickAdd(null);
+    setLineItems(newList);
+    setLinkModalConfig(null);
     setActiveSearchIdx(null);
     setItemSearchQuery("");
   };
@@ -239,7 +238,7 @@ const PurchaseOrderEditor: React.FC<Props> = ({ catalog, currentUser, onClose, o
                               </button>
                             ))}
                             <button
-                              onClick={() => setShowQuickAdd({ idx, name: item.description })}
+                              onClick={() => setLinkModalConfig({ idx, query: item.description })}
                               className="w-full text-left px-5 py-4 hover:bg-blue-50 flex items-center gap-3 border-t border-slate-50 group transition-all"
                             >
                               <div className="bg-blue-600 p-2 rounded-lg text-white"><Plus size={14} /></div>
@@ -251,6 +250,15 @@ const PurchaseOrderEditor: React.FC<Props> = ({ catalog, currentUser, onClose, o
                           </div>
                         )}
                         {item.sku && <span className="text-[8px] font-black text-orange-600 uppercase bg-orange-50 px-1.5 py-0.5 rounded border border-orange-100">Linked: {item.sku}</span>}
+                      </td>
+                      <td className="w-10 px-0 py-4 text-center">
+                        <button
+                          onClick={() => setLinkModalConfig({ idx, query: item.description })}
+                          className={`p-2 rounded-xl transition-all ${item.sku ? 'text-green-600 bg-green-50 hover:bg-green-100' : 'text-slate-300 bg-slate-50 hover:bg-blue-50 hover:text-blue-600'}`}
+                          title="Link to Catalog SKU"
+                        >
+                          <Tag size={16} />
+                        </button>
                       </td>
                       <td className="px-6 py-4 text-center">
                         <div className="flex flex-col gap-2 items-center">
@@ -287,42 +295,12 @@ const PurchaseOrderEditor: React.FC<Props> = ({ catalog, currentUser, onClose, o
         </div>
       </div>
 
-      {showQuickAdd && (
-        <div className="fixed inset-0 z-[400] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-md rounded-[3rem] p-8 shadow-2xl border border-white/20 animate-in zoom-in-95 duration-300">
-            <div className="flex justify-between items-center mb-8">
-              <div className="flex items-center gap-4">
-                <div className="bg-blue-600 p-3 rounded-2xl text-white shadow-lg"><PlusCircle size={24} /></div>
-                <div>
-                  <h3 className="text-lg font-black text-slate-900 tracking-tight">Add to Master</h3>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Foundational Catalog Update</p>
-                </div>
-              </div>
-              <button onClick={() => setShowQuickAdd(null)} className="p-2 text-slate-400 hover:text-slate-900"><X size={20} /></button>
-            </div>
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              const formData = new FormData(e.currentTarget);
-              handleQuickAdd(showQuickAdd.idx, showQuickAdd.name, formData.get('sku') as string, formData.get('hsn') as string);
-            }} className="space-y-6">
-              <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100 mb-2">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Item Identity</p>
-                <p className="text-sm font-black text-slate-900 uppercase italic">{showQuickAdd.name}</p>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-2">Assign Global SKU</label>
-                <input name="sku" autoFocus required placeholder="e.g. VOLTX-BATT-001" className="w-full bg-slate-50 border border-slate-100 px-5 py-4 rounded-2xl font-black text-slate-900 text-sm outline-none focus:ring-2 focus:ring-blue-500/20 uppercase" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-2">HSN / SAC Code</label>
-                <input name="hsn" required placeholder="8507" className="w-full bg-slate-50 border border-slate-100 px-5 py-4 rounded-2xl font-black text-slate-900 text-sm outline-none focus:ring-2 focus:ring-blue-500/20" />
-              </div>
-              <button type="submit" className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] shadow-xl hover:bg-black transition-all flex items-center justify-center gap-3 active:scale-95">
-                <Save size={18} /> Provision Item
-              </button>
-            </form>
-          </div>
-        </div>
+      {linkModalConfig && (
+        <CatalogLinkModal
+          initialQuery={linkModalConfig.query}
+          onClose={() => setLinkModalConfig(null)}
+          onSelect={(item) => handleLinkItem(linkModalConfig.idx, item)}
+        />
       )}
     </div>
   );

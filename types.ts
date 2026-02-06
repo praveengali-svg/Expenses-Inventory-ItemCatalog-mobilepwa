@@ -71,7 +71,7 @@ export interface User {
   createdAt: number;
 }
 
-export type ExpenseCategory = 'Parts' | 'Product' | 'Raw Materials' | 'Consumables' | 'Service' | 'Other' | 'Purchase' | 'Courier' | 'Transportation' | 'Porter';
+export type ExpenseCategory = 'Parts' | 'Product' | 'Raw Materials' | 'Consumables' | 'Service' | 'Other' | 'Purchase' | 'Courier' | 'Transportation' | 'Porter' | 'Salaries' | 'Rent' | 'Utilities' | 'IT' | 'Fees' | 'R&D' | 'Marketing';
 
 export interface CatalogItem {
   id: string;
