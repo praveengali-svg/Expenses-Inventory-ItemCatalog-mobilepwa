@@ -10,8 +10,8 @@ export interface GoogleDriveFile {
   name: string;
 }
 
-const CLIENT_ID = (process.env as any).GOOGLE_CLIENT_ID || '';
-const API_KEY = process.env.API_KEY || '';
+const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY || '';
 const SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly';
 const SYNC_FILENAME = 'voltx_vault_sync.json';
 
@@ -21,7 +21,7 @@ let tokenClient: any = null;
 const initTokenClient = () => {
   return new Promise<void>((resolve) => {
     if (tokenClient) return resolve();
-    
+
     if (typeof google === 'undefined' || !google.accounts) {
       console.error("Google GIS library not loaded");
       return resolve();
@@ -45,7 +45,7 @@ const initTokenClient = () => {
 const getToken = () => {
   return new Promise<string>((resolve, reject) => {
     if (accessToken) return resolve(accessToken);
-    
+
     if (!tokenClient) {
       return reject(new Error("Token client not initialized"));
     }
@@ -75,12 +75,12 @@ export const googleDriveService = {
   uploadSyncFile: async (vaultData: any): Promise<void> => {
     await initTokenClient();
     const token = await getToken();
-    
+
     // 1. Search for existing file
     const searchUrl = `https://www.googleapis.com/drive/v3/files?q=name='${SYNC_FILENAME}' and trashed=false&fields=files(id)`;
     const searchResp = await fetch(searchUrl, { headers: { Authorization: `Bearer ${token}` } });
     const { files } = await searchResp.json();
-    
+
     const fileContent = JSON.stringify(vaultData);
     const metadata = { name: SYNC_FILENAME, mimeType: 'application/json' };
     const form = new FormData();
@@ -107,16 +107,16 @@ export const googleDriveService = {
   downloadSyncFile: async (): Promise<any | null> => {
     await initTokenClient();
     const token = await getToken();
-    
+
     const searchUrl = `https://www.googleapis.com/drive/v3/files?q=name='${SYNC_FILENAME}' and trashed=false&fields=files(id)`;
     const searchResp = await fetch(searchUrl, { headers: { Authorization: `Bearer ${token}` } });
     const { files } = await searchResp.json();
-    
+
     if (!files || files.length === 0) return null;
 
     const fileUrl = `https://www.googleapis.com/drive/v3/files/${files[0].id}?alt=media`;
     const response = await fetch(fileUrl, { headers: { Authorization: `Bearer ${token}` } });
-    
+
     if (!response.ok) return null;
     return await response.json();
   },

@@ -27,7 +27,7 @@ async function verifyToken(req) {
 async function runGeminiExtraction(apiKey, fileData, mimeType, prompt, systemInstruction, schema) {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
-        model: "gemini-3-flash-preview",
+        model: "gemini-2.5-flash",
         systemInstruction: systemInstruction
     });
 
@@ -166,7 +166,7 @@ exports.verifyGstNumberProxy = onRequest(functionOptions, (req, res) => {
             const { gstin } = req.body.data || req.body;
 
             const genAI = new GoogleGenerativeAI(GEMINI_API_KEY.value());
-            const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
+            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
             const result = await model.generateContent({
                 contents: [{ role: 'user', parts: [{ text: `Search and verify GSTIN ${gstin}. Return Name, Address, Status.` }] }]

@@ -22,7 +22,15 @@ interface DetailState {
 }
 
 const OpExMonthly: React.FC<Props> = ({ expenses, currentUser, onUpdate }) => {
-    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+    // Initialize to current Financial Year start (Apr-Mar)
+    const getCurrentFYStart = () => {
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth() + 1; // 1-12
+        // If Jan-Mar, FY started previous year; if Apr-Dec, FY started this year
+        return currentMonth >= 4 ? currentYear : currentYear - 1;
+    };
+    const [selectedYear, setSelectedYear] = useState(getCurrentFYStart());
     const [editingCell, setEditingCell] = useState<{ category: string, month: string } | null>(null);
     const [details, setDetails] = useState<DetailState>({
         base: '',
@@ -177,12 +185,11 @@ const OpExMonthly: React.FC<Props> = ({ expenses, currentUser, onUpdate }) => {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 px-4">
                 <div>
                     <h3 className="text-3xl md:text-4xl font-black text-white tracking-tighter uppercase italic">Monthly OP EX Ledger</h3>
-                    <p className="text-blue-400 text-[10px] font-black mt-2 uppercase tracking-[0.4em]">Financial Year: {selectedYear}-{selectedYear + 1}</p>
                 </div>
 
                 <div className="flex items-center gap-4 bg-white/5 p-2 rounded-2xl border border-white/10">
                     <button onClick={() => setSelectedYear(y => y - 1)} className="p-2 text-slate-400 hover:text-white transition-colors"><ChevronLeft size={20} /></button>
-                    <span className="text-sm font-black text-white uppercase tracking-widest">{selectedYear}</span>
+                    <span className="text-sm font-black text-white uppercase tracking-widest">FY {selectedYear}-{String(selectedYear + 1).slice(-2)}</span>
                     <button onClick={() => setSelectedYear(y => y + 1)} className="p-2 text-slate-400 hover:text-white transition-colors"><ChevronRight size={20} /></button>
                 </div>
             </div>
