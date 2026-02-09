@@ -209,6 +209,15 @@ const Sales: React.FC<Props> = ({ sales, inventory, catalog, currentUser, onUpda
                   </div>
                 </th>
                 <th
+                  className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-pointer hover:text-slate-600 transition-colors group"
+                  onClick={() => handleSort('date')}
+                >
+                  <div className="flex items-center gap-2">
+                    Date
+                    {sortConfig?.key === 'date' ? (sortConfig.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />) : <ChevronsUpDown size={12} className="opacity-30" />}
+                  </div>
+                </th>
+                <th
                   className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center cursor-pointer hover:text-slate-600 transition-colors group"
                   onClick={() => handleSort('status')}
                 >
@@ -250,12 +259,12 @@ const Sales: React.FC<Props> = ({ sales, inventory, catalog, currentUser, onUpda
                     </div>
                   </td>
                   <td className="px-8 py-6">
-                    <div>
-                      <p className="font-black text-slate-900 text-sm">{doc.customerName}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Calendar size={10} className="text-slate-400" />
-                        <span className="text-[10px] font-bold text-slate-400 uppercase">{new Date(doc.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-                      </div>
+                    <p className="font-black text-slate-900 text-sm">{doc.customerName}</p>
+                  </td>
+                  <td className="px-8 py-6">
+                    <div className="flex items-center gap-2">
+                      <Calendar size={10} className="text-slate-400" />
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">{new Date(doc.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
                     </div>
                   </td>
                   <td className="px-8 py-6 text-center">
@@ -300,7 +309,7 @@ const Sales: React.FC<Props> = ({ sales, inventory, catalog, currentUser, onUpda
               ))}
               {filteredSales.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="py-32 text-center">
+                  <td colSpan={7} className="py-32 text-center">
                     <div className="flex flex-col items-center gap-4 text-slate-200">
                       <ShoppingBag size={64} />
                       <p className="font-black uppercase tracking-[0.3em] text-[10px]">Sales Ledger is Empty</p>

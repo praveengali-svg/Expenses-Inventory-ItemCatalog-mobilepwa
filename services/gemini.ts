@@ -56,7 +56,15 @@ const CATEGORIES: Record<string, ExpenseCategory> = {
   "Purchase": "Purchase",
   "Courier": "Courier",
   "Transportation": "Transportation",
-  "Porter": "Porter"
+  "Porter": "Porter",
+  "Salaries": "Salaries",
+  "Rent": "Rent",
+  "Utilities": "Utilities",
+  "IT": "IT",
+  "Professional Services": "Professional Services",
+  "Fees": "Professional Services",
+  "R&D": "R&D",
+  "Marketing": "Marketing"
 };
 
 export const verifyGstNumber = async (gstin: string): Promise<GstVerificationResult | null> => {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { compressImage } from './utils/image';
 import {
-  LayoutDashboard, History, ScanLine, Receipt, RefreshCw, Camera, Upload, Box, ShoppingBag, BookOpen, Building2, Wallet, Plus, FilePlus, Zap, ImageIcon, ChevronLeft, ChevronRight, Menu, FileText, ClipboardList, ArrowRightLeft, PackageCheck, XCircle, ChevronDown, IndianRupee, Cloud, CloudOff, ShieldCheck, CheckCircle2, AlertCircle, FileCheck, PieChart, ChevronUp, ChevronsUpDown
+  LayoutDashboard, History, ScanLine, Receipt, RefreshCw, Camera, Upload, Box, ShoppingBag, BookOpen, Building2, Wallet, Plus, FilePlus, Zap, ImageIcon, ChevronLeft, ChevronRight, Menu, FileText, ClipboardList, ArrowRightLeft, PackageCheck, XCircle, ChevronDown, IndianRupee, Cloud, CloudOff, ShieldCheck, CheckCircle2, AlertCircle, FileCheck, PieChart, ChevronUp, ChevronsUpDown, Table
 } from 'lucide-react';
 import { AppStatus, ExpenseData, User, InventoryItem, SalesDocument, CatalogItem, SalesDocType, DocumentType, ExpenseCategory } from './types';
 import { storageService } from './services/storage';
@@ -22,6 +22,7 @@ import PurchaseOrderEditor from './components/PurchaseOrderEditor';
 import Manufacturing from './components/Manufacturing';
 import MediaLibrary from './components/MediaLibrary';
 import Users from './components/Users';
+import OpExMonthly from './components/OpExMonthly';
 
 type TabID = 'dashboard' | 'purchase_invoice' | 'purchase_order' | 'opex' | 'sales_invoice' | 'proforma' | 'quotation' | 'credit_note' | 'delivery_challan' | 'inventory' | 'catalog' | 'reports' | 'manufacturing' | 'media' | 'users';
 
@@ -43,6 +44,7 @@ const App: React.FC = () => {
   const [cloudStatus, setCloudStatus] = useState<'synced' | 'syncing' | 'offline' | 'error'>('offline');
   const [opexFilter, setOpexFilter] = useState<ExpenseCategory | 'All'>('All');
   const [isOpexMenuOpen, setIsOpexMenuOpen] = useState(false);
+  const [showOpExGrid, setShowOpExGrid] = useState(false);
   const [expenseSort, setExpenseSort] = useState<{ key: 'vendorName' | 'date' | 'totalAmount' | 'docNumber' | 'category', direction: 'asc' | 'desc' } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -319,7 +321,7 @@ const App: React.FC = () => {
                 {/* Manual check for "opex" active tab or if menu is force open */}
                 {isOpexMenuOpen && !isSidebarCollapsed && (
                   <div className="ml-8 mt-2 space-y-1 border-l-2 border-white/10 pl-4 animate-in slide-in-from-top-2">
-                    {['Salaries', 'Rent', 'Utilities', 'IT', 'Fees', 'R&D', 'Marketing', 'Other'].map((cat) => (
+                    {['Salaries', 'Rent', 'Utilities', 'IT', 'Professional Services', 'R&D', 'Marketing', 'Other'].map((cat) => (
                       <button
                         key={cat}
                         onClick={() => { setActiveTab('opex'); setOpexFilter(cat as ExpenseCategory); setIsMobileMenuOpen(false); }}
@@ -423,7 +425,24 @@ const App: React.FC = () => {
             )}
             {activeTab === 'purchase_invoice' && renderDocLog(expenses.filter(e => e.type === 'invoice'), "Purchase Invoices", "Supply Flow")}
             {activeTab === 'purchase_order' && renderDocLog(expenses.filter(e => e.type === 'purchase_order'), "Orders", "Formal Procurement", true)}
-            {activeTab === 'opex' && renderDocLog(expenses.filter(e => e.type === 'expense' && (opexFilter === 'All' || e.lineItems?.some(i => i.category === opexFilter))), `OpEx: ${opexFilter}`, "Overhead Ledger")}
+            {activeTab === 'opex' && (
+              <div className="space-y-8">
+                <div className="flex justify-end px-4">
+                  <button
+                    onClick={() => setShowOpExGrid(!showOpExGrid)}
+                    className="bg-white/5 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest border border-white/10 flex items-center gap-3 hover:bg-white/10 transition-all"
+                  >
+                    <Table size={16} className="text-blue-400" />
+                    {showOpExGrid ? 'Switch to List View' : 'Switch to Monthly Grid'}
+                  </button>
+                </div>
+                {showOpExGrid ? (
+                  <OpExMonthly expenses={expenses} currentUser={user!} onUpdate={loadLocalData} />
+                ) : (
+                  renderDocLog(expenses.filter(e => e.type === 'expense' && (opexFilter === 'All' || e.lineItems?.some(i => i.category === opexFilter))), `OpEx: ${opexFilter}`, "Overhead Ledger")
+                )}
+              </div>
+            )}
             {isSalesTab && <Sales sales={sales} inventory={inventory} catalog={catalog} currentUser={user} onUpdate={loadLocalData} defaultFilter={activeTab as SalesDocType} />}
             {activeTab === 'inventory' && <Inventory items={inventory} catalog={catalog} onUpdate={loadLocalData} />}
             {activeTab === 'catalog' && <Catalog items={catalog} inventory={inventory} currentUser={user} onUpdate={loadLocalData} />}

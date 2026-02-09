@@ -10,6 +10,13 @@ export interface LineItem {
   sku?: string; // Linked SKU from catalog
   unitOfMeasure?: string; // PCS, SET, KGS etc.
   isStocked?: boolean; // Track if this specific line item has updated inventory
+  tdsAmount?: number;
+  tdsPercentage?: number;
+  esicAmount?: number;
+  esicPercentage?: number;
+  ptAmount?: number;
+  pfAmount?: number;
+  pfPercentage?: number;
 }
 
 export type MovementType =
@@ -71,7 +78,7 @@ export interface User {
   createdAt: number;
 }
 
-export type ExpenseCategory = 'Parts' | 'Product' | 'Raw Materials' | 'Consumables' | 'Service' | 'Other' | 'Purchase' | 'Courier' | 'Transportation' | 'Porter' | 'Salaries' | 'Rent' | 'Utilities' | 'IT' | 'Fees' | 'R&D' | 'Marketing';
+export type ExpenseCategory = 'Parts' | 'Product' | 'Raw Materials' | 'Consumables' | 'Service' | 'Other' | 'Purchase' | 'Courier' | 'Transportation' | 'Porter' | 'Salaries' | 'Rent' | 'Utilities' | 'IT' | 'Professional Services' | 'R&D' | 'Marketing';
 
 export interface CatalogItem {
   id: string;
@@ -117,6 +124,13 @@ export interface ExpenseData {
   createdBy: string;
   docNumber?: string;
   status?: PurchaseStatus;
+  tdsAmount?: number;
+  tdsPercentage?: number;
+  esicAmount?: number;
+  esicPercentage?: number;
+  ptAmount?: number;
+  pfAmount?: number;
+  pfPercentage?: number;
 }
 
 export interface ProductionOrder {

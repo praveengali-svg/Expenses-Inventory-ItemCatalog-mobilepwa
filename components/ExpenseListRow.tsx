@@ -27,7 +27,7 @@ const ExpenseListRow: React.FC<Props> = ({ expense, onDelete, onView, onUpdate }
     }
   }, [expense]);
 
-  const categories: ExpenseCategory[] = ["Parts", "Product", "Raw Materials", "Consumables", "Service", "Other", "Purchase", "Courier", "Transportation", "Porter", "Salaries", "Rent", "Utilities", "IT", "Fees", "R&D", "Marketing"];
+  const categories: ExpenseCategory[] = ["Parts", "Product", "Raw Materials", "Consumables", "Service", "Other", "Purchase", "Courier", "Transportation", "Porter", "Salaries", "Rent", "Utilities", "IT", "Professional Services", "R&D", "Marketing"];
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -51,7 +51,7 @@ const ExpenseListRow: React.FC<Props> = ({ expense, onDelete, onView, onUpdate }
     'Rent': 'bg-fuchsia-50 text-fuchsia-600 border-fuchsia-100',
     'Utilities': 'bg-yellow-50 text-yellow-600 border-yellow-100',
     'IT': 'bg-sky-50 text-sky-600 border-sky-100',
-    'Fees': 'bg-red-50 text-red-600 border-red-100',
+    'Professional Services': 'bg-red-50 text-red-600 border-red-100',
     'R&D': 'bg-violet-50 text-violet-600 border-violet-100',
     'Marketing': 'bg-lime-50 text-lime-600 border-lime-100'
   };
