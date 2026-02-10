@@ -359,6 +359,10 @@ const App: React.FC = () => {
             {user.role === 'admin' && <NavItem id="inventory" label="Inventory" icon={Box} active={activeTab === 'inventory'} collapsed={isSidebarCollapsed} onClick={() => { setActiveTab('inventory'); setIsMobileMenuOpen(false); }} />}
             <NavItem id="catalog" label="Master" icon={BookOpen} active={activeTab === 'catalog'} collapsed={isSidebarCollapsed} onClick={() => { setActiveTab('catalog'); setIsMobileMenuOpen(false); }} />
           </div>
+          <div className="pt-6">
+            <p className={`text-[10px] font-black text-slate-600 uppercase tracking-[0.5em] mb-4 px-4 ${isSidebarCollapsed ? 'hidden' : ''}`}>Production</p>
+            <NavItem id="manufacturing" label="Manufacturing" icon={RefreshCw} active={activeTab === 'manufacturing'} collapsed={isSidebarCollapsed} onClick={() => { setActiveTab('manufacturing'); setIsMobileMenuOpen(false); }} />
+          </div>
           {user.role === 'admin' && (
             <div className="pt-6">
               <p className={`text-[10px] font-black text-slate-600 uppercase tracking-[0.5em] mb-4 px-4 ${isSidebarCollapsed ? 'hidden' : ''}`}>Insights</p>

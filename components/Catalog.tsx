@@ -1,7 +1,7 @@
 
 import React, { useState, useRef } from 'react';
 import {
-  BookOpen, Plus, Search, Trash2, Edit2, Save, X, Tag, IndianRupee, Hash, ClipboardList, Package, Filter, Camera, Upload, ImageIcon, Link, ArrowRight, ExternalLink, Box, Sparkles, ChevronDown, Ruler
+  BookOpen, Plus, Search, Trash2, Edit2, Save, X, Tag, IndianRupee, Hash, ClipboardList, Package, Filter, Camera, Upload, ImageIcon, Link, ArrowRight, ExternalLink, Box, Sparkles, ChevronDown, Ruler, Copy
 } from 'lucide-react';
 import { CatalogItem, ExpenseCategory, InventoryItem, User as AppUser } from '../types';
 import { storageService } from '../services/storage';
@@ -16,7 +16,9 @@ interface Props {
 const Catalog: React.FC<Props> = ({ items, inventory, currentUser, onUpdate }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
+
   const [editingItem, setEditingItem] = useState<CatalogItem | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Form State
   const [sku, setSku] = useState("");
@@ -98,13 +100,54 @@ const Catalog: React.FC<Props> = ({ items, inventory, currentUser, onUpdate }) =
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    const item: CatalogItem = {
-      id: editingItem?.id || crypto.randomUUID(),
-      sku, name, description, hsnCode, gstPercentage, basePrice, sellingPrice, unitOfMeasure, category, type, imageUrl
-    };
-    await storageService.saveCatalogItem(item);
-    onUpdate();
-    resetForm();
+    if (!sku || !name) {
+      alert("SKU and Name are required!");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      // Clean up the data
+      const cleanedSku = sku.replace(/\//g, "-").toUpperCase(); // Ensure SKU is safe
+      const item: CatalogItem = {
+        id: editingItem?.id || crypto.randomUUID(),
+        sku: cleanedSku,
+        name, description, hsnCode, gstPercentage, basePrice, sellingPrice, unitOfMeasure, category, type,
+        imageUrl: imageUrl || undefined // Firebase doesn't like undefined usually, but if we remove the field it's fine?
+        // Actually, let's explicit undefined removal:
+      };
+
+      // Remove undefined values manually to be safe or use a helper
+      const safeItem = JSON.parse(JSON.stringify(item));
+
+      await storageService.saveCatalogItem(safeItem);
+      onUpdate();
+      resetForm();
+      alert("Item saved successfully to Master Catalog.");
+    } catch (err: any) {
+      console.error("Save failed", err);
+      alert(`Failed to save item: ${err.message}`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDuplicate = (template: CatalogItem) => {
+    setName(`${template.name} (Copy)`);
+    setDescription(template.description);
+    setHsnCode(template.hsnCode);
+    setSku(`${template.sku}-COPY`);
+    setGstPercentage(template.gstPercentage);
+    setBasePrice(template.basePrice);
+    setSellingPrice(template.sellingPrice || 0);
+    setUnitOfMeasure(template.unitOfMeasure || "PCS");
+    setCategory(template.category);
+    setType(template.type);
+    setImageUrl(template.imageUrl);
+
+    setEditingItem(null); // New item
+    setIsFormOpen(true);
+    setShowSuggestions(false);
   };
 
   const handleDelete = async (sku: string) => {
@@ -194,9 +237,10 @@ const Catalog: React.FC<Props> = ({ items, inventory, currentUser, onUpdate }) =
                     <div className="space-y-2">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Unique SKU (Link Key)</label>
                       <input
-                        type="text" required value={sku} onChange={e => setSku(e.target.value)}
+                        type="text" required value={sku}
+                        onChange={e => setSku(e.target.value.replace(/\//g, "-").toUpperCase())} // Auto-fix slashes
                         className="w-full bg-slate-50 border border-slate-100 px-5 py-4 rounded-2xl font-black text-slate-900 outline-none focus:ring-4 focus:ring-purple-500/10"
-                        placeholder="SKU-XXXX"
+                        placeholder="SKU-XXXX (No Slashes)"
                       />
                     </div>
                     <div className="space-y-2">
@@ -315,8 +359,8 @@ const Catalog: React.FC<Props> = ({ items, inventory, currentUser, onUpdate }) =
 
               <div className="flex gap-4">
                 <button type="button" onClick={resetForm} className="flex-1 bg-slate-100 text-slate-400 py-5 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] transition-all">Discard</button>
-                <button type="submit" className="flex-[2] bg-purple-600 text-white py-5 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] shadow-xl hover:bg-purple-700 transition-all flex items-center justify-center gap-2">
-                  <Save size={18} /> Commit to Master
+                <button type="submit" disabled={isSaving} className="flex-[2] bg-purple-600 disabled:bg-slate-400 text-white py-5 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] shadow-xl hover:bg-purple-700 transition-all flex items-center justify-center gap-2">
+                  {isSaving ? <span className="animate-pulse">Saving...</span> : <><Save size={18} /> Commit to Master</>}
                 </button>
               </div>
             </form>
@@ -421,12 +465,16 @@ const Catalog: React.FC<Props> = ({ items, inventory, currentUser, onUpdate }) =
                     <td className="px-8 py-6 text-right">
                       {currentUser?.role === 'admin' ? (
                         <div className="flex justify-end gap-2">
+                          <button onClick={() => handleDuplicate(item)} className="p-2.5 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-blue-600 shadow-sm transition-all" title="Duplicate Item"><Copy size={16} /></button>
                           <button onClick={() => handleEdit(item)} className="p-2.5 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-blue-600 shadow-sm transition-all"><Edit2 size={16} /></button>
                           <button onClick={() => handleDelete(item.sku)} className="p-2.5 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-red-500 shadow-sm transition-all"><Trash2 size={16} /></button>
                         </div>
                       ) : (
                         <div className="flex justify-end">
-                          <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest">Read Only</span>
+                          <button onClick={() => handleDuplicate(item)} className="p-2.5 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-blue-600 shadow-sm transition-all mr-2" title="Duplicate Item">
+                            <Copy size={16} />
+                          </button>
+                          <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest pt-3">Read Only</span>
                         </div>
                       )}
                     </td>
@@ -447,8 +495,8 @@ const Catalog: React.FC<Props> = ({ items, inventory, currentUser, onUpdate }) =
             </tbody>
           </table>
         </div>
-      </div>
-    </div>
+      </div >
+    </div >
   );
 };
 
