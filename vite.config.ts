@@ -11,8 +11,12 @@ export default defineConfig(({ mode }) => {
 
   return {
     server: {
-      port: 3000,
+      port: 3002,
       host: '0.0.0.0',
+      strictPort: true,   // fail fast instead of silently picking a different port
+      hmr: {
+        port: 3002,       // pin WebSocket to the same port the server uses
+      },
       proxy: {
         // Forward all /api/* calls to the deployed Firebase Hosting site
         // so the Cloud Run functions (extractExpense, extractSales, verifyGst)
