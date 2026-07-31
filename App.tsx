@@ -7,6 +7,8 @@ import { AppStatus, ExpenseData, User, InventoryItem, SalesDocument, CatalogItem
 import { storageService } from './services/storage';
 import { extractExpenseData } from './services/gemini';
 import { auth } from './services/firebase';
+import { storage } from './services/firebase';
+import { ref, uploadString, getDownloadURL } from 'firebase/storage';
 import { signInAnonymously } from 'firebase/auth';
 import { googleDriveService } from './services/googleDrive';
 import Dashboard from './components/Dashboard';
@@ -47,6 +49,27 @@ const App: React.FC = () => {
   const [showOpExGrid, setShowOpExGrid] = useState(false);
   const [expenseSort, setExpenseSort] = useState<{ key: 'vendorName' | 'date' | 'totalAmount' | 'docNumber' | 'category', direction: 'asc' | 'desc' } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Upload a base64-encoded receipt to Firebase Storage and return the download URL
+  const uploadReceiptImage = async (
+    expenseId: string,
+    fileData: string,
+    mimeType: string,
+    fileName: string
+  ): Promise<string | undefined> => {
+    try {
+      const ext = fileName.split('.').pop() || 'jpg';
+      const storagePath = `receipts/${expenseId}/${Date.now()}.${ext}`;
+      const storageRef = ref(storage, storagePath);
+      // Strip the data-URL prefix if present (uploadString expects pure base64)
+      const base64Data = fileData.includes(',') ? fileData.split(',')[1] : fileData;
+      await uploadString(storageRef, base64Data, 'base64', { contentType: mimeType });
+      return await getDownloadURL(storageRef);
+    } catch (err) {
+      console.warn('Receipt upload to Firebase Storage failed (non-fatal):', err);
+      return undefined; // Image missing is better than blocking the save
+    }
+  };
 
   const loadLocalData = useCallback(async () => {
     const [exp, sls, inv, cat] = await Promise.all([
@@ -136,11 +159,23 @@ const App: React.FC = () => {
         createdBy: user!.name,
       } as ExpenseData;
 
-      await storageService.saveExpense(newExpense);
+      // Upload receipt to Firebase Storage so the URL persists in Firestore
+      const uploadedUrl = await uploadReceiptImage(newExpense.id, fileData, mimeType, fileName);
+      const expenseToSave: ExpenseData = { ...newExpense, imageUrl: uploadedUrl };
+      const expenseForViewer: ExpenseData = { ...newExpense, imageUrl: uploadedUrl || fileData };
+
+      try {
+        await storageService.saveExpense(expenseToSave);
+      } catch (saveErr: any) {
+        console.error("Firestore save failed", saveErr);
+        setStatus(AppStatus.IDLE);
+        alert(`Document scanned OK but could not save: ${saveErr.message}`);
+        return;
+      }
       await loadLocalData();
       await neuralCloudSync('push');
       setStatus(AppStatus.IDLE);
-      setSelectedExpense(newExpense);
+      setSelectedExpense(expenseForViewer); // show with image in viewer
     } catch (err: any) {
       console.error("AI Ingest failed", err);
 
@@ -162,10 +197,18 @@ const App: React.FC = () => {
         docNumber: 'PENDING-SCAN'
       } as ExpenseData;
 
-      await storageService.saveExpense(fallbackExpense);
-      await loadLocalData();
+      // Upload fallback receipt image to Storage too
+      const fallbackUrl = await uploadReceiptImage(fallbackExpense.id, fileData, mimeType, fileName);
+      const fallbackToSave: ExpenseData = { ...fallbackExpense, imageUrl: fallbackUrl };
 
-      alert(`Scan failed (${err.message}). Document saved for manual review.`);
+      try {
+        await storageService.saveExpense(fallbackToSave);
+        await loadLocalData();
+        alert(`Scan failed (${err.message}). Document saved for manual review.`);
+      } catch (saveErr: any) {
+        console.error("Fallback save also failed", saveErr);
+        alert(`Scan failed (${err.message}). Also could not save draft: ${saveErr.message}`);
+      }
       setStatus(AppStatus.IDLE);
     }
   };

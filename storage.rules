@@ -1,0 +1,13 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Receipts: any authenticated user (incl. anonymous) can read/write
+    match /receipts/{expenseId}/{fileName} {
+      allow read, write: if request.auth != null;
+    }
+    // Deny everything else by default
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
